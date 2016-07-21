@@ -82,7 +82,7 @@
 
     static inline unsigned int gcc_current_sp(void)
     {
-        register unsigned sp asm("sp");
+        register unsigned sp __asm__("sp");
         return sp;
     }
     
