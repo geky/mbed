@@ -40,7 +40,7 @@ int TCPServer::listen(int backlog)
     if (!_socket) {
         ret = NSAPI_ERROR_NO_SOCKET;
     } else {
-        ret = _stack->socket_listen(_socket, backlog);
+        ret = _iface->socket_listen(_socket, backlog);
     }
 
     _lock.unlock();
@@ -60,7 +60,7 @@ int TCPServer::accept(TCPSocket *connection, SocketAddress *address)
 
         _pending = 0;
         void *socket;
-        ret = _stack->socket_accept(_socket, &socket, address);
+        ret = _iface->socket_accept(_socket, &socket, address);
 
         if (0 == ret) {
             connection->_lock.lock();
@@ -69,10 +69,10 @@ int TCPServer::accept(TCPSocket *connection, SocketAddress *address)
                 connection->close();
             }
 
-            connection->_stack = _stack;
+            connection->_iface = _iface;
             connection->_socket = socket;
             connection->_event = Callback<void()>(connection, &TCPSocket::event);
-            _stack->socket_attach(socket, &Callback<void()>::thunk, &connection->_event);
+            _iface->socket_attach(socket, &Callback<void()>::thunk, &connection->_event);
 
             connection->_lock.unlock();
             break;

@@ -16,7 +16,6 @@
 
 #include "SocketAddress.h"
 #include "NetworkInterface.h"
-#include "NetworkStack.h"
 #include <string.h>
 #include "mbed.h"
 
@@ -285,7 +284,7 @@ bool operator!=(const SocketAddress &a, const SocketAddress &b)
     return !(a == b);
 }
 
-void SocketAddress::_SocketAddress(NetworkStack *iface, const char *host, uint16_t port)
+SocketAddress::SocketAddress(NetworkInterface *iface, const char *host, uint16_t port)
 {
     _ip_address[0] = '\0';
 

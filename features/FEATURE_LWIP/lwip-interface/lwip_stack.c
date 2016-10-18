@@ -546,7 +546,7 @@ static int mbed_lwip_err_remap(err_t err) {
 }
 
 /* LWIP network stack implementation */
-static int mbed_lwip_gethostbyname(nsapi_stack_t *stack, const char *host, nsapi_addr_t *addr, nsapi_version_t version)
+int mbed_lwip_gethostbyname(nsapi_stack_t *stack, const char *host, nsapi_addr_t *addr, nsapi_version_t version)
 {
     ip_addr_t lwip_addr;
 
@@ -587,7 +587,7 @@ static int mbed_lwip_gethostbyname(nsapi_stack_t *stack, const char *host, nsapi
     return 0;
 }
 
-static int mbed_lwip_socket_open(nsapi_stack_t *stack, nsapi_socket_t *handle, nsapi_protocol_t proto)
+int mbed_lwip_socket_open(nsapi_stack_t *stack, nsapi_socket_t *handle, nsapi_protocol_t proto)
 {
     // check if network is connected
     if (!lwip_connected) {
@@ -630,7 +630,7 @@ static int mbed_lwip_socket_open(nsapi_stack_t *stack, nsapi_socket_t *handle, n
     return 0;
 }
 
-static int mbed_lwip_socket_close(nsapi_stack_t *stack, nsapi_socket_t handle)
+int mbed_lwip_socket_close(nsapi_stack_t *stack, nsapi_socket_t handle)
 {
     struct lwip_socket *s = (struct lwip_socket *)handle;
 
@@ -639,7 +639,7 @@ static int mbed_lwip_socket_close(nsapi_stack_t *stack, nsapi_socket_t handle)
     return mbed_lwip_err_remap(err);
 }
 
-static int mbed_lwip_socket_bind(nsapi_stack_t *stack, nsapi_socket_t handle, nsapi_addr_t addr, uint16_t port)
+int mbed_lwip_socket_bind(nsapi_stack_t *stack, nsapi_socket_t handle, nsapi_addr_t addr, uint16_t port)
 {
     struct lwip_socket *s = (struct lwip_socket *)handle;
     ip_addr_t ip_addr;
@@ -657,7 +657,7 @@ static int mbed_lwip_socket_bind(nsapi_stack_t *stack, nsapi_socket_t handle, ns
     return mbed_lwip_err_remap(err);
 }
 
-static int mbed_lwip_socket_listen(nsapi_stack_t *stack, nsapi_socket_t handle, int backlog)
+int mbed_lwip_socket_listen(nsapi_stack_t *stack, nsapi_socket_t handle, int backlog)
 {
     struct lwip_socket *s = (struct lwip_socket *)handle;
 
@@ -665,7 +665,7 @@ static int mbed_lwip_socket_listen(nsapi_stack_t *stack, nsapi_socket_t handle, 
     return mbed_lwip_err_remap(err);
 }
 
-static int mbed_lwip_socket_connect(nsapi_stack_t *stack, nsapi_socket_t handle, nsapi_addr_t addr, uint16_t port)
+int mbed_lwip_socket_connect(nsapi_stack_t *stack, nsapi_socket_t handle, nsapi_addr_t addr, uint16_t port)
 {
     struct lwip_socket *s = (struct lwip_socket *)handle;
     ip_addr_t ip_addr;
@@ -681,7 +681,7 @@ static int mbed_lwip_socket_connect(nsapi_stack_t *stack, nsapi_socket_t handle,
     return mbed_lwip_err_remap(err);
 }
 
-static int mbed_lwip_socket_accept(nsapi_stack_t *stack, nsapi_socket_t server, nsapi_socket_t *handle, nsapi_addr_t *addr, uint16_t *port)
+int mbed_lwip_socket_accept(nsapi_stack_t *stack, nsapi_socket_t server, nsapi_socket_t *handle, nsapi_addr_t *addr, uint16_t *port)
 {
     struct lwip_socket *s = (struct lwip_socket *)server;
     struct lwip_socket *ns = mbed_lwip_arena_alloc();
@@ -704,7 +704,7 @@ static int mbed_lwip_socket_accept(nsapi_stack_t *stack, nsapi_socket_t server, 
     return 0;
 }
 
-static int mbed_lwip_socket_send(nsapi_stack_t *stack, nsapi_socket_t handle, const void *data, unsigned size)
+int mbed_lwip_socket_send(nsapi_stack_t *stack, nsapi_socket_t handle, const void *data, unsigned size)
 {
     struct lwip_socket *s = (struct lwip_socket *)handle;
     size_t bytes_written = 0;
@@ -717,7 +717,7 @@ static int mbed_lwip_socket_send(nsapi_stack_t *stack, nsapi_socket_t handle, co
     return (int)bytes_written;
 }
 
-static int mbed_lwip_socket_recv(nsapi_stack_t *stack, nsapi_socket_t handle, void *data, unsigned size)
+int mbed_lwip_socket_recv(nsapi_stack_t *stack, nsapi_socket_t handle, void *data, unsigned size)
 {
     struct lwip_socket *s = (struct lwip_socket *)handle;
 
@@ -741,7 +741,7 @@ static int mbed_lwip_socket_recv(nsapi_stack_t *stack, nsapi_socket_t handle, vo
     return recv;
 }
 
-static int mbed_lwip_socket_sendto(nsapi_stack_t *stack, nsapi_socket_t handle, nsapi_addr_t addr, uint16_t port, const void *data, unsigned size)
+int mbed_lwip_socket_sendto(nsapi_stack_t *stack, nsapi_socket_t handle, nsapi_addr_t addr, uint16_t port, const void *data, unsigned size)
 {
     struct lwip_socket *s = (struct lwip_socket *)handle;
     ip_addr_t ip_addr;
@@ -766,7 +766,7 @@ static int mbed_lwip_socket_sendto(nsapi_stack_t *stack, nsapi_socket_t handle, 
     return size;
 }
 
-static int mbed_lwip_socket_recvfrom(nsapi_stack_t *stack, nsapi_socket_t handle, nsapi_addr_t *addr, uint16_t *port, void *data, unsigned size)
+int mbed_lwip_socket_recvfrom(nsapi_stack_t *stack, nsapi_socket_t handle, nsapi_addr_t *addr, uint16_t *port, void *data, unsigned size)
 {
     struct lwip_socket *s = (struct lwip_socket *)handle;
     struct netbuf *buf;
@@ -785,7 +785,7 @@ static int mbed_lwip_socket_recvfrom(nsapi_stack_t *stack, nsapi_socket_t handle
     return recv;
 }
 
-static int mbed_lwip_setsockopt(nsapi_stack_t *stack, nsapi_socket_t handle, int level, int optname, const void *optval, unsigned optlen)
+int mbed_lwip_setsockopt(nsapi_stack_t *stack, nsapi_socket_t handle, int level, int optname, const void *optval, unsigned optlen)
 {
     struct lwip_socket *s = (struct lwip_socket *)handle;
 
@@ -831,31 +831,10 @@ static int mbed_lwip_setsockopt(nsapi_stack_t *stack, nsapi_socket_t handle, int
     }
 }
 
-static void mbed_lwip_socket_attach(nsapi_stack_t *stack, nsapi_socket_t handle, void (*callback)(void *), void *data)
+void mbed_lwip_socket_attach(nsapi_stack_t *stack, nsapi_socket_t handle, void (*callback)(void *), void *data)
 {
     struct lwip_socket *s = (struct lwip_socket *)handle;
 
     s->cb = callback;
     s->data = data;
 }
-
-/* LWIP network stack */
-const nsapi_stack_api_t lwip_stack_api = {
-    .gethostbyname      = mbed_lwip_gethostbyname,
-    .socket_open        = mbed_lwip_socket_open,
-    .socket_close       = mbed_lwip_socket_close,
-    .socket_bind        = mbed_lwip_socket_bind,
-    .socket_listen      = mbed_lwip_socket_listen,
-    .socket_connect     = mbed_lwip_socket_connect,
-    .socket_accept      = mbed_lwip_socket_accept,
-    .socket_send        = mbed_lwip_socket_send,
-    .socket_recv        = mbed_lwip_socket_recv,
-    .socket_sendto      = mbed_lwip_socket_sendto,
-    .socket_recvfrom    = mbed_lwip_socket_recvfrom,
-    .setsockopt         = mbed_lwip_setsockopt,
-    .socket_attach      = mbed_lwip_socket_attach,
-};
-
-nsapi_stack_t lwip_stack = {
-    .stack_api = &lwip_stack_api,
-};

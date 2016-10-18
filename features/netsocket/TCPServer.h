@@ -22,7 +22,6 @@
 
 #include "netsocket/Socket.h"
 #include "netsocket/TCPSocket.h"
-#include "netsocket/NetworkStack.h"
 #include "netsocket/NetworkInterface.h"
 #include "rtos/Semaphore.h"
 

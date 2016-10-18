@@ -21,7 +21,7 @@
 #define SOCKET_H
 
 #include "netsocket/SocketAddress.h"
-#include "netsocket/NetworkStack.h"
+#include "netsocket/NetworkInterface.h"
 #include "rtos/Mutex.h"
 #include "Callback.h"
 #include "toolchain.h"
@@ -43,15 +43,10 @@ public:
      *  network interface. Not needed if stack is passed to the
      *  socket's constructor.
      *
-     *  @param stack    Network stack as target for socket
+     *  @param iface    Network interface as target for socket
      *  @return         0 on success, negative error code on failure
      */
-    int open(NetworkStack *stack);
-
-    template <typename S>
-    int open(S *stack) {
-        return open(nsapi_create_stack(stack));
-    }
+    int open(NetworkInterface *iface);
     
     /** Close the socket
      *
@@ -190,7 +185,7 @@ protected:
     virtual nsapi_protocol_t get_proto() = 0;
     virtual void event() = 0;
 
-    NetworkStack *_stack;
+    NetworkInterface *_iface;
     nsapi_socket_t _socket;
     uint32_t _timeout;
     mbed::Callback<void()> _event;

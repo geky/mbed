@@ -28,7 +28,6 @@
 
 // entry point for C++ api
 #include "netsocket/SocketAddress.h"
-#include "netsocket/NetworkStack.h"
 
 #include "netsocket/NetworkInterface.h"
 #include "netsocket/EthInterface.h"

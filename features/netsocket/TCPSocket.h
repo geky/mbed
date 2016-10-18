@@ -21,7 +21,6 @@
 #define TCPSOCKET_H
 
 #include "netsocket/Socket.h"
-#include "netsocket/NetworkStack.h"
 #include "netsocket/NetworkInterface.h"
 #include "rtos/Semaphore.h"
 
@@ -41,14 +40,13 @@ public:
      *  Creates and opens a socket on the network stack of the given
      *  network interface.
      *
-     *  @param stack    Network stack as target for socket
+     *  @param iface    Network interface as target for socket
      */
-    template <typename S>
-    TCPSocket(S *stack)
+    TCPSocket(NetworkInterface *iface)
         : _pending(0), _read_sem(0), _write_sem(0),
           _read_in_progress(false), _write_in_progress(false)
     {
-        open(stack);
+        open(iface);
     }
 
     /** Destroy a socket

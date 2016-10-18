@@ -15,7 +15,8 @@
  */
 
 #include "netsocket/NetworkInterface.h"
-#include "netsocket/NetworkStack.h"
+#include "netsocket/SocketAddress.h"
+#include "nsapi_dns.h"
 #include <string.h>
 
 
@@ -57,16 +58,105 @@ int NetworkInterface::set_dhcp(bool dhcp)
 // DNS operations go through the underlying stack by default
 int NetworkInterface::gethostbyname(const char *name, SocketAddress *address)
 {
-    return get_stack()->gethostbyname(name, address);
+    // check for simple ip addresses
+    if (address->set_ip_address(name)) {
+        return 0;
+    }
+
+    return nsapi_dns_query(this, name, address);
 }
 
 int NetworkInterface::gethostbyname(const char *name, SocketAddress *address, nsapi_version_t version)
 {
-    return get_stack()->gethostbyname(name, address, version);
+    // check for simple ip addresses
+    if (address->set_ip_address(name)) {
+        if (address->get_ip_version() != version) {
+            return NSAPI_ERROR_DNS_FAILURE;
+        }
+
+        return 0;
+    }
+
+    return nsapi_dns_query(this, name, address, version);
 }
 
 int NetworkInterface::add_dns_server(const SocketAddress &address)
 {
-    return get_stack()->add_dns_server(address);
+    return nsapi_dns_add_server(address);
+}
+
+// Other operations default to UNSUPPORTED
+int NetworkInterface::setstackopt(int level, int optname, const void *optval, unsigned optlen)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+int NetworkInterface::getstackopt(int level, int optname, void *optval, unsigned *optlen)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+int NetworkInterface::socket_open(nsapi_socket_t *handle, nsapi_protocol_t proto)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+int NetworkInterface::socket_close(nsapi_socket_t handle)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+int NetworkInterface::socket_bind(nsapi_socket_t handle, const SocketAddress &address)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+int NetworkInterface::socket_listen(nsapi_socket_t handle, int backlog)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+int NetworkInterface::socket_connect(nsapi_socket_t handle, const SocketAddress &address)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+int NetworkInterface::socket_accept(nsapi_socket_t server, nsapi_socket_t *handle, SocketAddress *address)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+int NetworkInterface::socket_send(nsapi_socket_t handle, const void *data, unsigned size)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+int NetworkInterface::socket_recv(nsapi_socket_t handle, void *data, unsigned size)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+int NetworkInterface::socket_sendto(nsapi_socket_t handle, const SocketAddress &address, const void *data, unsigned size)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+int NetworkInterface::socket_recvfrom(nsapi_socket_t handle, SocketAddress *address, void *buffer, unsigned size)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+void NetworkInterface::socket_attach(nsapi_socket_t handle, void (*callback)(void *), void *data)
+{
+}
+
+int NetworkInterface::setsockopt(nsapi_socket_t handle, int level, int optname, const void *optval, unsigned optlen)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+int NetworkInterface::getsockopt(nsapi_socket_t handle, int level, int optname, void *optval, unsigned *optlen)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
 }
 

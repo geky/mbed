@@ -24,7 +24,6 @@
 #include "toolchain.h"
 
 // Predeclared classes
-class NetworkStack;
 class NetworkInterface;
 
 
@@ -41,21 +40,17 @@ public:
      *
      *  On failure, the IP address and port will be set to zero
      *
-     *  @param stack    Network stack to use for DNS resolution
+     *  @param iface    Network interface to use for DNS resolution
      *  @param host     Hostname to resolve
      *  @param port     Optional 16-bit port
      *  @deprecated
      *      Constructors hide possible errors. Replaced by
      *      NetworkInterface::gethostbyname.
      */
-    template <typename S>
     MBED_DEPRECATED_SINCE("mbed-os-5.1.3",
         "Constructors hide possible errors. Replaced by "
         "NetworkInterface::gethostbyname.")
-    SocketAddress(S *stack, const char *host, uint16_t port = 0)
-    {
-        _SocketAddress(nsapi_create_stack(stack), host, port);
-    }
+    SocketAddress(NetworkInterface *iface, const char *host, uint16_t port = 0);
 
     /** Create a SocketAddress from a raw IP address and port
      *
@@ -161,8 +156,6 @@ public:
     friend bool operator!=(const SocketAddress &a, const SocketAddress &b);
 
 private:
-    void _SocketAddress(NetworkStack *iface, const char *host, uint16_t port);
-
     char _ip_address[NSAPI_IP_SIZE];
     nsapi_addr_t _addr;
     uint16_t _port;

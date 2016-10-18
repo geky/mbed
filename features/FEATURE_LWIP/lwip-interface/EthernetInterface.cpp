@@ -84,7 +84,90 @@ const char *EthernetInterface::get_gateway()
     return 0;
 }
 
-NetworkStack *EthernetInterface::get_stack()
+int EthernetInterface::gethostbyname(const char *host, SocketAddress *address)
 {
-    return nsapi_create_stack(&lwip_stack);
+    nsapi_addr_t addr = {NSAPI_IPv4, 0};
+    int err = mbed_lwip_gethostbyname(host, &addr);
+    address->set_addr(addr);
+    return err;
+}
+
+int EthernetInterface::socket_open(nsapi_socket_t *handle, nsapi_protocol_t proto)
+{
+    return mbed_lwip_socket_open(handle, proto);
+}
+
+int EthernetInterface::socket_close(nsapi_socket_t handle)
+{
+    return mbed_lwip_socket_close(handle);
+}
+
+int EthernetInterface::socket_bind(nsapi_socket_t handle, const SocketAddress &address)
+{
+    return mbed_lwip_socket_bind(handle, address.get_addr(), address.get_port());
+}
+
+int EthernetInterface::socket_listen(nsapi_socket_t handle, int backlog)
+{
+    return mbed_lwip_socket_listen(handle, backlog);
+}
+
+int EthernetInterface::socket_connect(nsapi_socket_t handle, const SocketAddress &address)
+{
+    return mbed_lwip_socket_connect(handle, address.get_addr(), address.get_port());
+}
+
+int EthernetInterface::socket_accept(nsapi_socket_t server, nsapi_socket_t *handle, SocketAddress *address)
+{
+    nsapi_addr_t addr = {NSAPI_IPv4, 0};
+    uint16_t port = 0;
+
+    int err = mbed_lwip_socket_accept(server, handle, &addr, &port);
+
+    if (address) {
+        address->set_addr(addr);
+        address->set_port(port);
+    }
+
+    return err;
+}
+
+int EthernetInterface::socket_send(nsapi_socket_t handle, const void *data, unsigned size)
+{
+    return mbed_lwip_socket_send(handle, data, size);
+}
+
+int EthernetInterface::socket_recv(nsapi_socket_t handle, void *data, unsigned size)
+{
+    return mbed_lwip_socket_recv(handle, data, size);
+}
+
+int EthernetInterface::socket_sendto(nsapi_socket_t handle, const SocketAddress &address, const void *data, unsigned size)
+{
+    return mbed_lwip_socket_sendto(handle, address.get_addr(), address.get_port(), data, size);
+}
+
+int EthernetInterface::socket_recvfrom(nsapi_socket_t handle, SocketAddress *address, void *data, unsigned size)
+{
+    nsapi_addr_t addr = {NSAPI_IPv4, 0};
+    uint16_t port = 0;
+
+    int err = mbed_lwip_socket_recvfrom(handle, &addr, &port, data, size);
+
+    if (address) {
+        address->set_addr(addr);
+        address->set_port(port);
+    }
+
+    return err;
+}
+
+int EthernetInterface::setsockopt(nsapi_socket_t handle, int level, int optname, const void *optval, unsigned optlen)
+{
+    return mbed_lwip_setsockopt(handle, level, optname, optval, optlen);
+}
+
+void EthernetInterface::socket_attach(nsapi_socket_t handle, void (*callback)(void *), void *data)
+{
+    return mbed_lwip_socket_attach(handle, callback, data);
 }

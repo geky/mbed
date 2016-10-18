@@ -18,24 +18,24 @@
 #include "mbed.h"
 
 Socket::Socket()
-    : _stack(0)
+    : _iface(0)
     , _socket(0)
     , _timeout(osWaitForever)
 {
 }
 
-int Socket::open(NetworkStack *stack)
+int Socket::open(NetworkInterface *iface)
 {
     _lock.lock();
 
-    if (_stack != NULL || stack == NULL) {
+    if (_iface != NULL || iface == NULL) {
         _lock.unlock();
         return NSAPI_ERROR_PARAMETER;
     }
-    _stack = stack;
+    _iface = iface;
 
     nsapi_socket_t socket;
-    int err = _stack->socket_open(&socket, get_proto());
+    int err = _iface->socket_open(&socket, get_proto());
     if (err) {
         _lock.unlock();
         return err;
@@ -43,7 +43,7 @@ int Socket::open(NetworkStack *stack)
 
     _socket = socket;
     _event.attach(this, &Socket::event);
-    _stack->socket_attach(_socket, Callback<void()>::thunk, &_event);
+    _iface->socket_attach(_socket, Callback<void()>::thunk, &_event);
 
     _lock.unlock();
     return 0;
@@ -55,10 +55,10 @@ int Socket::close()
 
     int ret = 0;
     if (_socket) {
-        _stack->socket_attach(_socket, 0, 0);
+        _iface->socket_attach(_socket, 0, 0);
         nsapi_socket_t socket = _socket;
         _socket = 0;
-        ret = _stack->socket_close(socket);
+        ret = _iface->socket_close(socket);
     }
 
     // Wakeup anything in a blocking operation
@@ -91,7 +91,7 @@ int Socket::bind(const SocketAddress &address)
     if (!_socket) {
         ret = NSAPI_ERROR_NO_SOCKET;
     } else {
-        ret = _stack->socket_bind(_socket, address);
+        ret = _iface->socket_bind(_socket, address);
     }
 
     _lock.unlock();
@@ -125,7 +125,7 @@ int Socket::setsockopt(int level, int optname, const void *optval, unsigned optl
     if (!_socket) {
         ret = NSAPI_ERROR_NO_SOCKET;
     } else {
-        ret = _stack->setsockopt(_socket, level, optname, optval, optlen);
+        ret = _iface->setsockopt(_socket, level, optname, optval, optlen);
     }
 
     _lock.unlock();
@@ -140,7 +140,7 @@ int Socket::getsockopt(int level, int optname, void *optval, unsigned *optlen)
     if (!_socket) {
         ret = NSAPI_ERROR_NO_SOCKET;
     } else {
-        ret = _stack->getsockopt(_socket, level, optname, optval, optlen);
+        ret = _iface->getsockopt(_socket, level, optname, optval, optlen);
     }
 
     _lock.unlock();

@@ -42,7 +42,7 @@ int TCPSocket::connect(const SocketAddress &address)
     if (!_socket) {
         ret = NSAPI_ERROR_NO_SOCKET;
     } else {
-        ret = _stack->socket_connect(_socket, address);
+        ret = _iface->socket_connect(_socket, address);
     }
 
     _lock.unlock();
@@ -52,7 +52,7 @@ int TCPSocket::connect(const SocketAddress &address)
 int TCPSocket::connect(const char *host, uint16_t port)
 {
     SocketAddress address;
-    int err = _stack->gethostbyname(host, &address);
+    int err = _iface->gethostbyname(host, &address);
     if (err) {
         return NSAPI_ERROR_DNS_FAILURE;
     }
@@ -81,7 +81,7 @@ int TCPSocket::send(const void *data, unsigned size)
         }
 
         _pending = 0;
-        int sent = _stack->socket_send(_socket, data, size);
+        int sent = _iface->socket_send(_socket, data, size);
         if ((0 == _timeout) || (NSAPI_ERROR_WOULD_BLOCK != sent)) {
             ret = sent;
             break;
@@ -125,7 +125,7 @@ int TCPSocket::recv(void *data, unsigned size)
         }
 
         _pending = 0;
-        int recv = _stack->socket_recv(_socket, data, size);
+        int recv = _iface->socket_recv(_socket, data, size);
         if ((0 == _timeout) || (NSAPI_ERROR_WOULD_BLOCK != recv)) {
             ret = recv;
             break;

@@ -39,12 +39,12 @@ nsapi_addr_t dns_servers[DNS_SERVERS_SIZE] = {
 };
 
 // DNS server configuration
-extern "C" int nsapi_dns_add_server(nsapi_addr_t addr)
+int nsapi_dns_add_server(const SocketAddress &addr)
 {
     memmove(&dns_servers[1], &dns_servers[0],
             (DNS_SERVERS_SIZE-1)*sizeof(nsapi_addr_t));
 
-    dns_servers[0] = addr;
+    dns_servers[0] = addr.get_addr();
     return 0;
 }
 
@@ -110,7 +110,7 @@ static void dns_append_question(uint8_t **p, const char *host, nsapi_version_t v
     dns_append_word(p, CLASS_IN);
 }
 
-static int dns_scan_response(const uint8_t **p, nsapi_addr_t *addr, unsigned addr_count)
+static int dns_scan_response(const uint8_t **p, SocketAddress *addr, unsigned addr_count)
 {
     // scan header
     uint16_t id    = dns_scan_word(p);
@@ -167,22 +167,20 @@ static int dns_scan_response(const uint8_t **p, nsapi_addr_t *addr, unsigned add
 
         if (rtype == RR_A && rclass == CLASS_IN && rdlength == NSAPI_IPv4_BYTES) {
             // accept A record
-            addr->version = NSAPI_IPv4;
+            nsapi_addr_t a = { NSAPI_IPv4 };
             for (int i = 0; i < NSAPI_IPv4_BYTES; i++) {
-                addr->bytes[i] = dns_scan_byte(p);
+                a.bytes[i] = dns_scan_byte(p);
             }
 
-            addr += 1;
-            count += 1;
+            addr[count++].set_addr(a);
         } else if (rtype == RR_AAAA && rclass == CLASS_IN && rdlength == NSAPI_IPv6_BYTES) {
             // accept AAAA record
-            addr->version = NSAPI_IPv6;
+            nsapi_addr_t a = { NSAPI_IPv6 };
             for (int i = 0; i < NSAPI_IPv6_BYTES; i++) {
-                addr->bytes[i] = dns_scan_byte(p);
+                a.bytes[i] = dns_scan_byte(p);
             }
 
-            addr += 1;
-            count += 1;
+            addr[count++].set_addr(a);
         } else {
             // skip unrecognized records
             *p += rdlength;
@@ -193,8 +191,8 @@ static int dns_scan_response(const uint8_t **p, nsapi_addr_t *addr, unsigned add
 }
 
 // core query function
-static int nsapi_dns_query_multiple(NetworkStack *stack, const char *host,
-        nsapi_addr_t *addr, unsigned addr_count, nsapi_version_t version)
+int nsapi_dns_query_multiple(NetworkInterface *iface, const char *host,
+        SocketAddress *addr, unsigned addr_count, nsapi_version_t version)
 {
     // check for valid host name
     int host_len = host ? strlen(host) : 0;
@@ -204,7 +202,7 @@ static int nsapi_dns_query_multiple(NetworkStack *stack, const char *host,
 
     // create a udp socket
     UDPSocket socket;
-    int err = socket.open(stack);
+    int err = socket.open(iface);
     if (err) {
         return err;
     }
@@ -264,43 +262,9 @@ static int nsapi_dns_query_multiple(NetworkStack *stack, const char *host,
     return result;
 }
 
-// convenience functions for other forms of queries
-extern "C" int nsapi_dns_query_multiple(nsapi_stack_t *stack, const char *host,
-        nsapi_addr_t *addr, unsigned addr_count, nsapi_version_t version)
-{
-    NetworkStack *nstack = nsapi_create_stack(stack);
-    return nsapi_dns_query_multiple(nstack, host, addr, addr_count, version);
-}
-
-int nsapi_dns_query_multiple(NetworkStack *stack, const char *host,
-        SocketAddress *addresses, unsigned addr_count, nsapi_version_t version)
-{
-    nsapi_addr_t *addrs = new nsapi_addr_t[addr_count];
-    int result = nsapi_dns_query_multiple(stack, host, addrs, addr_count, version);
-
-    if (result > 0) {
-        for (int i = 0; i < result; i++) {
-            addresses[i].set_addr(addrs[i]);
-        }
-    }
-
-    delete[] addrs;
-    return result;
-}
-
-extern "C" int nsapi_dns_query(nsapi_stack_t *stack, const char *host,
-        nsapi_addr_t *addr, nsapi_version_t version)
-{
-    NetworkStack *nstack = nsapi_create_stack(stack);
-    int result = nsapi_dns_query_multiple(nstack, host, addr, 1, version);
-    return (result > 0) ? 0 : result;
-}
-
-int nsapi_dns_query(NetworkStack *stack, const char *host,
+int nsapi_dns_query(NetworkInterface *iface, const char *host,
         SocketAddress *address, nsapi_version_t version)
 {
-    nsapi_addr_t addr;
-    int result = nsapi_dns_query_multiple(stack, host, &addr, 1, version);
-    address->set_addr(addr);
+    int result = nsapi_dns_query_multiple(iface, host, address, 1, version);
     return (result > 0) ? 0 : result;
 }

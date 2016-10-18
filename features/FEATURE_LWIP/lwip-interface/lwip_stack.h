@@ -34,7 +34,19 @@ char *mbed_lwip_get_ip_address(char *buf, int buflen);
 char *mbed_lwip_get_netmask(char *buf, int buflen);
 char *mbed_lwip_get_gateway(char *buf, int buflen);
 
-extern nsapi_stack_t lwip_stack;
+int mbed_lwip_gethostbyname(const char *host, nsapi_addr_t *addr);
+int mbed_lwip_socket_open(nsapi_socket_t *handle, nsapi_protocol_t proto);
+int mbed_lwip_socket_close(nsapi_socket_t handle);
+int mbed_lwip_socket_bind(nsapi_socket_t handle, nsapi_addr_t addr, uint16_t port);
+int mbed_lwip_socket_listen(nsapi_socket_t handle, int backlog);
+int mbed_lwip_socket_connect(nsapi_socket_t handle, nsapi_addr_t addr, uint16_t port);
+int mbed_lwip_socket_accept(nsapi_socket_t server, nsapi_socket_t *handle, nsapi_addr_t *addr, uint16_t *port);
+int mbed_lwip_socket_send(nsapi_socket_t handle, const void *data, unsigned size);
+int mbed_lwip_socket_recv(nsapi_socket_t handle, void *data, unsigned size);
+int mbed_lwip_socket_sendto(nsapi_socket_t handle, nsapi_addr_t addr, uint16_t port, const void *data, unsigned size);
+int mbed_lwip_socket_recvfrom(nsapi_socket_t handle, nsapi_addr_t *addr, uint16_t *port, void *data, unsigned size);
+int mbed_lwip_setsockopt(nsapi_socket_t handle, int level, int optname, const void *optval, unsigned optlen);
+void mbed_lwip_socket_attach(nsapi_socket_t handle, void (*callback)(void *), void *data);
 
 
 #ifdef __cplusplus
