@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-#include "NetworkStack.h"
+#include "netsocket/NetworkStack.h"
+#include "platform/Callback.h"
 #include "nsapi_dns.h"
 #include "mbed.h"
 #include "stddef.h"
@@ -87,6 +88,8 @@ private:
     {
         return _stack()->stack_api;
     }
+
+    Callback<void(nsapi_event_t)> _callback;
 
 public:
     virtual const char *get_ip_address()
@@ -262,13 +265,14 @@ protected:
         return err;
     }
 
-    virtual void socket_attach(nsapi_socket_t socket, void (*callback)(void *), void *data)
+    virtual void socket_attach(nsapi_socket_t socket, Callback<void(nsapi_event_t)> callback)
     {
         if (!_stack_api()->socket_attach) {
             return;
         }
 
-        return _stack_api()->socket_attach(_stack(), socket, callback, data);
+        _callback = callback;
+        return _stack_api()->socket_attach(_stack(), socket, &Callback<void(nsapi_event_t)>::thunk, &_callback);
     }
 
     virtual int setsockopt(nsapi_socket_t socket, int level, int optname, const void *optval, unsigned optlen)

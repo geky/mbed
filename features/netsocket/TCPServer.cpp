@@ -71,8 +71,7 @@ int TCPServer::accept(TCPSocket *connection, SocketAddress *address)
 
             connection->_stack = _stack;
             connection->_socket = socket;
-            connection->_event = Callback<void()>(connection, &TCPSocket::event);
-            _stack->socket_attach(socket, &Callback<void()>::thunk, &connection->_event);
+            _stack->socket_attach(socket, callback(connection, &TCPSocket::event));
 
             connection->_lock.unlock();
             break;
@@ -99,7 +98,7 @@ int TCPServer::accept(TCPSocket *connection, SocketAddress *address)
     return ret;
 }
 
-void TCPServer::event()
+void TCPServer::event(nsapi_event_t event)
 {
     int32_t acount = _accept_sem.wait(0);
     if (acount <= 1) {
@@ -107,7 +106,13 @@ void TCPServer::event()
     }
 
     _pending += 1;
-    if (_callback && _pending == 1) {
-        _callback();
+    if (_pending == 1) {
+        if (_callback) {
+            _callback(event);
+        }
+
+        if (_callback_old) {
+            _callback_old();
+        }
     }
 }

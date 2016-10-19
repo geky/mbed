@@ -42,8 +42,7 @@ int Socket::open(NetworkStack *stack)
     }
 
     _socket = socket;
-    _event.attach(this, &Socket::event);
-    _stack->socket_attach(_socket, Callback<void()>::thunk, &_event);
+    _stack->socket_attach(_socket, callback(this, &Socket::event));
 
     _lock.unlock();
     return 0;
@@ -55,7 +54,7 @@ int Socket::close()
 
     int ret = 0;
     if (_socket) {
-        _stack->socket_attach(_socket, 0, 0);
+        _stack->socket_attach(_socket, NULL);
         nsapi_socket_t socket = _socket;
         _socket = 0;
         ret = _stack->socket_close(socket);
@@ -63,7 +62,7 @@ int Socket::close()
 
     // Wakeup anything in a blocking operation
     // on this socket
-    event();
+    event(NSAPI_EVENT_CLOSE);
 
     _lock.unlock();
     return ret;
@@ -148,11 +147,20 @@ int Socket::getsockopt(int level, int optname, void *optval, unsigned *optlen)
 
 }
 
-void Socket::attach(Callback<void()> callback)
+void Socket::attach(Callback<void(nsapi_event_t)> callback)
 {
     _lock.lock();
 
     _callback = callback;
+
+    _lock.unlock();
+}
+
+void Socket::attach(Callback<void()> callback)
+{
+    _lock.lock();
+
+    _callback_old = callback;
 
     _lock.unlock();
 }

@@ -43,6 +43,46 @@
 
 #define DHCP_TIMEOUT 15000
 
+/* LWIP error remapping */
+static int mbed_lwip_err_remap(err_t err) {
+    switch (err) {
+        case ERR_OK:
+        case ERR_CLSD:
+        case ERR_RST:
+            return 0;
+        case ERR_MEM:
+            return NSAPI_ERROR_NO_MEMORY;
+        case ERR_CONN:
+            return NSAPI_ERROR_NO_CONNECTION;
+        case ERR_TIMEOUT:
+        case ERR_RTE:
+        case ERR_INPROGRESS:
+        case ERR_WOULDBLOCK:
+            return NSAPI_ERROR_WOULD_BLOCK;
+        case ERR_VAL:
+        case ERR_USE:
+        case ERR_ISCONN:
+        case ERR_ARG:
+            return NSAPI_ERROR_PARAMETER;
+        default:
+            return NSAPI_ERROR_DEVICE_ERROR;
+    }
+}
+
+/* LWIP event remapping */
+static nsapi_event_t mbed_lwip_evt_remap(enum netconn_evt event) {
+    switch (event) {
+        case NETCONN_EVT_RCVPLUS:
+            return NSAPI_EVENT_RECV;
+        case NETCONN_EVT_SENDPLUS:
+            return NSAPI_EVENT_SEND;
+        case NETCONN_EVT_ERROR:
+            return ;
+        default:
+            return 0;
+    }
+}
+
 /* Static arena of sockets */
 static struct lwip_socket {
     bool in_use;
@@ -51,7 +91,7 @@ static struct lwip_socket {
     struct netbuf *buf;
     u16_t offset;
 
-    void (*cb)(void *);
+    void (*cb)(void *, nsapi_event_t);
     void *data;
 } lwip_arena[MEMP_NUM_NETCONN];
 
@@ -85,15 +125,19 @@ static void mbed_lwip_arena_dealloc(struct lwip_socket *s)
     s->in_use = false;
 }
 
-static void mbed_lwip_socket_callback(struct netconn *nc, enum netconn_evt eh, u16_t len)
+static void mbed_lwip_socket_callback(struct netconn *nc, enum netconn_evt evt, u16_t len)
 {
     sys_prot_t prot = sys_arch_protect();
+    nsapi_event_t event = mbed_lwip_evt_remap(evt);
+    if (!event) {
+        return;
+    }
 
     for (int i = 0; i < MEMP_NUM_NETCONN; i++) {
         if (lwip_arena[i].in_use
             && lwip_arena[i].conn == nc
             && lwip_arena[i].cb) {
-            lwip_arena[i].cb(lwip_arena[i].data);
+            lwip_arena[i].cb(lwip_arena[i].data, event);
         }
     }
 
@@ -519,32 +563,6 @@ int mbed_lwip_bringdown(void)
     return 0;
 }
 
-/* LWIP error remapping */
-static int mbed_lwip_err_remap(err_t err) {
-    switch (err) {
-        case ERR_OK:
-        case ERR_CLSD:
-        case ERR_RST:
-            return 0;
-        case ERR_MEM:
-            return NSAPI_ERROR_NO_MEMORY;
-        case ERR_CONN:
-            return NSAPI_ERROR_NO_CONNECTION;
-        case ERR_TIMEOUT:
-        case ERR_RTE:
-        case ERR_INPROGRESS:
-        case ERR_WOULDBLOCK:
-            return NSAPI_ERROR_WOULD_BLOCK;
-        case ERR_VAL:
-        case ERR_USE:
-        case ERR_ISCONN:
-        case ERR_ARG:
-            return NSAPI_ERROR_PARAMETER;
-        default:
-            return NSAPI_ERROR_DEVICE_ERROR;
-    }
-}
-
 /* LWIP network stack implementation */
 static int mbed_lwip_gethostbyname(nsapi_stack_t *stack, const char *host, nsapi_addr_t *addr, nsapi_version_t version)
 {
@@ -831,7 +849,7 @@ static int mbed_lwip_setsockopt(nsapi_stack_t *stack, nsapi_socket_t handle, int
     }
 }
 
-static void mbed_lwip_socket_attach(nsapi_stack_t *stack, nsapi_socket_t handle, void (*callback)(void *), void *data)
+static void mbed_lwip_socket_attach(nsapi_stack_t *stack, nsapi_socket_t handle, void (*callback)(void *, nsapi_event_t), void *data)
 {
     struct lwip_socket *s = (struct lwip_socket *)handle;
 

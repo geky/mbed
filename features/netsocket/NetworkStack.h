@@ -23,6 +23,7 @@
 #include "nsapi_types.h"
 #include "netsocket/SocketAddress.h"
 #include "netsocket/NetworkInterface.h"
+#include "platform/Callback.h"
 
 
 /** NetworkStack class
@@ -271,7 +272,7 @@ protected:
      *  @param callback Function to call on state change
      *  @param data     Argument to pass to callback
      */
-    virtual void socket_attach(nsapi_socket_t handle, void (*callback)(void *), void *data) = 0;
+    virtual void socket_attach(nsapi_socket_t handle, mbed::Callback<void(nsapi_event_t)> callback) = 0;
 
     /*  Set stack-specific socket options
      *

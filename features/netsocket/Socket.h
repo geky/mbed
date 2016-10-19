@@ -159,6 +159,21 @@ public:
      *
      *  @param func     Function to call on state change
      */
+    void attach(mbed::Callback<void(nsapi_event_t)> func);
+
+    /** Register a callback on state change of the socket
+     *
+     *  The specified callback will be called on state changes such as when
+     *  the socket can recv/send/accept successfully and on when an error
+     *  occurs. The callback may also be called spuriously without reason.
+     *
+     *  The callback may be called in an interrupt context and should not
+     *  perform expensive operations such as recv/send calls.
+     *
+     *  @param func     Function to call on state change
+     */
+    MBED_DEPRECATED_SINCE("mbed-os-5.2.1",
+        "Zero information callback has been replaced by Callback<void(nsapi_event_t)>")
     void attach(mbed::Callback<void()> func);
 
     /** Register a callback on state change of the socket
@@ -188,13 +203,13 @@ public:
 protected:
     Socket();
     virtual nsapi_protocol_t get_proto() = 0;
-    virtual void event() = 0;
+    virtual void event(nsapi_event_t) = 0;
 
     NetworkStack *_stack;
     nsapi_socket_t _socket;
     uint32_t _timeout;
-    mbed::Callback<void()> _event;
-    mbed::Callback<void()> _callback;
+    mbed::Callback<void(nsapi_event_t)> _callback;
+    mbed::Callback<void()> _callback_old;
     rtos::Mutex _lock;
 };
 

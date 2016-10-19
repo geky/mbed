@@ -86,7 +86,7 @@ public:
 
 protected:
     virtual nsapi_protocol_t get_proto();
-    virtual void event();
+    virtual void event(nsapi_event_t);
 
     volatile unsigned _pending;
     rtos::Semaphore _accept_sem;

@@ -50,6 +50,28 @@ typedef enum nsapi_error {
     NSAPI_ERROR_DEVICE_ERROR  = -3012,     /*!< failure interfacing with the network processor */
 } nsapi_error_t;
 
+/** Enum of standard events
+ *
+ *  Each event indicates a state change on the socket
+ *  and may be passed as the parameter into the callback
+ *  attached to the socket.
+ *
+ *  Alternatively an error code may be passed as an event.
+ *
+ *  @enum nsapi_event_t
+ */
+enum nsapi_event {
+    NSAPI_EVENT_RECV = 1,   /*!< data is ready to be recieved */
+    NSAPI_EVENT_SEND,       /*!< socket is ready to send data */
+    NSAPI_EVENT_ACCEPT,     /*!< peer is ready to be accepted */
+    NSAPI_EVENT_CONNECT,    /*!< socket has successfully connected */
+    NSAPI_EVENT_CLOSE,      /*!< socket has been closed */
+};
+
+/** Type used to represent events
+ */
+typedef signed int nsapi_event_t;
+
 /** Enum of encryption types
  *
  *  The security type specifies a particular security to use when
@@ -443,7 +465,7 @@ typedef struct nsapi_stack_api
      *  @param callback Function to call on state change
      *  @param data     Argument to pass to callback
      */
-    void (*socket_attach)(nsapi_stack_t *stack, nsapi_socket_t socket, void (*callback)(void *), void *data);
+    void (*socket_attach)(nsapi_stack_t *stack, nsapi_socket_t socket, void (*callback)(void *, nsapi_event_t), void *data);
 
     /*  Set stack-specific socket options
      *
