@@ -18,6 +18,11 @@ void mbed_stats_stack_get(mbed_stats_stack_t *stats)
     while ((threadid = _osThreadEnumNext(enumid))) {
         osEvent e;
 
+        e = _osThreadGetInfo(threadid, osThreadInfoStackCurrent);
+        if (e.status == osOK) {
+           stats->current_size += (uint32_t)e.value.p;
+        }
+
         e = _osThreadGetInfo(threadid, osThreadInfoStackMax);
         if (e.status == osOK) {
            stats->max_size += (uint32_t)e.value.p;

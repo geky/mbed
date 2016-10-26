@@ -170,6 +170,7 @@ typedef enum  {
 typedef enum {
   osThreadInfoState,
   osThreadInfoStackSize,
+  osThreadInfoStackCurrent,
   osThreadInfoStackMax,
   osThreadInfoEntry,
   osThreadInfoArg,
