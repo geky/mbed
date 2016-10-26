@@ -821,6 +821,19 @@ os_InRegs osEvent_type svcThreadGetInfo (osThreadId thread_id, osThreadInfo info
     return osEvent_ret_value;
   }
 
+  if (osThreadInfoStackCurrent == info) {
+    uint32_t size = ptcb->priv_stack;
+    if (0 == size) {
+        // This is an OS task - always a fixed size
+        size = os_stackinfo & 0x3FFFF;
+    }
+
+    uint8_t *stack_top = (uint8_t*)ptcb->stack + size;
+    uint8_t *stack_ptr = (uint8_t*)ptcb->tsk_stack;
+    ret.value.v = stack_top - stack_ptr;
+    return osEvent_ret_value;
+  }
+
   if (osThreadInfoStackMax == info) {
     uint32_t i;
     uint32_t *stack_ptr;
