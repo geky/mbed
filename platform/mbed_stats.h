@@ -19,6 +19,7 @@
 #ifndef MBED_STATS_H
 #define MBED_STATS_H
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,6 +50,12 @@ typedef struct {
  * Fill the passed in structure with stack stats.
  */
 void mbed_stats_stack_get(mbed_stats_stack_t *stats);
+
+/**
+ * Fill the passed array of stat structures with the stack stats
+ * for each available stack.
+ */
+size_t mbed_stats_stack_get_each(mbed_stats_stack_t *stats, size_t count);
 
 #ifdef __cplusplus
 }
