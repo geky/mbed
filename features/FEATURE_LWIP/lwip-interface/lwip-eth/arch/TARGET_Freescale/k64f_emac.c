@@ -23,6 +23,7 @@
 #include <stdlib.h>
 
 #include "mbed_interface.h"
+#include "equeue.h"
 
 enet_handle_t g_handle;
 // TX Buffer descriptors
@@ -46,11 +47,13 @@ extern void k64f_init_eth_hardware(void);
 /* K64F EMAC driver data structure */
 struct k64f_enetdata {
   struct netif *netif;  /**< Reference back to LWIP parent netif */
-  sys_sem_t RxReadySem; /**< RX packet ready semaphore */
-  sys_sem_t TxCleanSem; /**< TX cleanup thread wakeup semaphore */
+  //sys_sem_t RxReadySem; /**< RX packet ready semaphore */
+  //sys_sem_t TxCleanSem; /**< TX cleanup thread wakeup semaphore */
   sys_mutex_t TXLockMutex; /**< TX critical section mutex */
   sys_sem_t xTXDCountSem; /**< TX free buffer counting semaphore */
   uint8_t tx_consume_index, tx_produce_index; /**< TX buffers ring */
+  uint8_t rx_index;
+  equeue_t queue;
 };
 
 static struct k64f_enetdata k64f_enetdata;
@@ -126,25 +129,27 @@ static void k64f_tx_reclaim(struct k64f_enetdata *k64f_enet)
  *
  *  This function handles the receive interrupt of K64F.
  */
-void enet_mac_rx_isr()
-{
-  sys_sem_signal(&k64f_enetdata.RxReadySem);
-}
-
-void enet_mac_tx_isr()
-{
-  sys_sem_signal(&k64f_enetdata.TxCleanSem);
-}
+//void enet_mac_rx_isr()
+//{
+//  sys_sem_signal(&k64f_enetdata.RxReadySem);
+//}
+//
+//void enet_mac_tx_isr()
+//{
+//  sys_sem_signal(&k64f_enetdata.TxCleanSem);
+//}
+static void packet_tx(void *p);
+static void packet_rx(void *p);
 
 void ethernet_callback(ENET_Type *base, enet_handle_t *handle, enet_event_t event, void *param)
 {
     switch (event)
     {
       case kENET_RxEvent:
-        enet_mac_rx_isr();
+        equeue_call(&k64f_enetdata.queue, packet_rx, &k64f_enetdata);
         break;
       case kENET_TxEvent:
-        enet_mac_tx_isr();
+        equeue_call(&k64f_enetdata.queue, packet_tx, &k64f_enetdata);
         break;
       default:
         break;
@@ -459,19 +464,25 @@ void k64f_enetif_input(struct netif *netif, int idx)
  *
  *  \param[in] pvParameters pointer to the interface data
  */
-static void packet_rx(void* pvParameters) {
-  struct k64f_enetdata *k64f_enet = pvParameters;
-  int idx = 0;
+//static void packet_rx(void* pvParameters) {
+//  struct k64f_enetdata *k64f_enet = pvParameters;
+//  int idx = 0;
+//
+//  while (1) {
+//    /* Wait for receive task to wakeup */
+//    sys_arch_sem_wait(&k64f_enet->RxReadySem, 0);
+//
+//    while ((g_handle.rxBdCurrent->control & ENET_BUFFDESCRIPTOR_RX_EMPTY_MASK) == 0) {
+//      k64f_enetif_input(k64f_enet->netif, idx);
+//      idx = (idx + 1) % ENET_RX_RING_LEN;
+//    }
+//  }
+//}
 
-  while (1) {
-    /* Wait for receive task to wakeup */
-    sys_arch_sem_wait(&k64f_enet->RxReadySem, 0);
-
-    while ((g_handle.rxBdCurrent->control & ENET_BUFFDESCRIPTOR_RX_EMPTY_MASK) == 0) {
-      k64f_enetif_input(k64f_enet->netif, idx);
-      idx = (idx + 1) % ENET_RX_RING_LEN;
-    }
-  }
+static void packet_rx(void *p) {
+    struct k64f_enetdata *k64f_enet = p;
+    k64f_enetif_input(k64f_enet->netif, k64f_enet->rx_index);
+    k64f_enet->rx_index = (k64f_enet->rx_index+1) % ENET_RX_RING_LEN;
 }
 
 /** \brief  Transmit cleanup task
@@ -482,14 +493,24 @@ static void packet_rx(void* pvParameters) {
  *
  *  \param[in] pvParameters pointer to the interface data
  */
-static void packet_tx(void* pvParameters) {
-  struct k64f_enetdata *k64f_enet = pvParameters;
+//static void packet_tx(void* pvParameters) {
+//  struct k64f_enetdata *k64f_enet = pvParameters;
+//
+//  while (1) {
+//    /* Wait for transmit cleanup task to wakeup */
+//    sys_arch_sem_wait(&k64f_enet->TxCleanSem, 0);
+//    k64f_tx_reclaim(k64f_enet);
+//  }
+//}
 
-  while (1) {
-    /* Wait for transmit cleanup task to wakeup */
-    sys_arch_sem_wait(&k64f_enet->TxCleanSem, 0);
+static void packet_tx(void *p) {
+    struct k64f_enetdata *k64f_enet = p;
     k64f_tx_reclaim(k64f_enet);
-  }
+}
+
+static void k64f_dispatch(void *p) {
+    struct k64f_enetdata *k64f_enet = p;
+    equeue_dispatch(&k64f_enet->queue, -1);
 }
 
 /** \brief  Low level output of a packet. Never call this from an
@@ -577,40 +598,56 @@ int phy_link_status() {
     return (int)connection_status;
 }
 
-static void k64f_phy_task(void *data) {
-  struct netif *netif = (struct netif*)data;
+struct k64f_phydata {
   bool connection_status;
-  PHY_STATE crt_state = {STATE_UNKNOWN, (phy_speed_t)STATE_UNKNOWN, (phy_duplex_t)STATE_UNKNOWN};
+  PHY_STATE crt_state;
   PHY_STATE prev_state;
-  uint32_t phyAddr = 0;
-  uint32_t rcr = 0;
+  uint32_t phyAddr;
+  uint32_t rcr;
+};
 
-  prev_state = crt_state;
-  while (true) {
+static struct k64f_phydata k64f_phy = {
+    0,
+    {STATE_UNKNOWN, (phy_speed_t)STATE_UNKNOWN, (phy_duplex_t)STATE_UNKNOWN},
+    {STATE_UNKNOWN, (phy_speed_t)STATE_UNKNOWN, (phy_duplex_t)STATE_UNKNOWN},
+    0,
+    0,
+};
+
+static void k64f_phy_task(void *data) {
+    struct netif *netif = (struct netif*)data;
+//  bool connection_status;
+//  PHY_STATE crt_state = {STATE_UNKNOWN, (phy_speed_t)STATE_UNKNOWN, (phy_duplex_t)STATE_UNKNOWN};
+//  PHY_STATE prev_state;
+//  uint32_t phyAddr = 0;
+//  uint32_t rcr = 0;
+//
+//  prev_state = crt_state;
+//  while (true) {
     // Get current status
-    PHY_GetLinkStatus(ENET, phyAddr, &connection_status);
-    crt_state.connected = connection_status ? 1 : 0;
+    PHY_GetLinkStatus(ENET, k64f_phy.phyAddr, &k64f_phy.connection_status);
+    k64f_phy.crt_state.connected = k64f_phy.connection_status ? 1 : 0;
     // Get the actual PHY link speed
-    PHY_GetLinkSpeedDuplex(ENET, phyAddr, &crt_state.speed, &crt_state.duplex);
+    PHY_GetLinkSpeedDuplex(ENET, k64f_phy.phyAddr, &k64f_phy.crt_state.speed, &k64f_phy.crt_state.duplex);
 
     // Compare with previous state
-    if (crt_state.connected != prev_state.connected) {
-      if (crt_state.connected)
+    if (k64f_phy.crt_state.connected != k64f_phy.prev_state.connected) {
+      if (k64f_phy.crt_state.connected)
         tcpip_callback_with_block((tcpip_callback_fn)netif_set_link_up, (void*) netif, 1);
       else
         tcpip_callback_with_block((tcpip_callback_fn)netif_set_link_down, (void*) netif, 1);
     }
 
-    if (crt_state.speed != prev_state.speed) {
-      rcr = ENET->RCR;
-      rcr &= ~ENET_RCR_RMII_10T_MASK;
-      rcr |= ENET_RCR_RMII_10T(!crt_state.speed);
-      ENET->RCR = rcr;
+    if (k64f_phy.crt_state.speed != k64f_phy.prev_state.speed) {
+      k64f_phy.rcr = ENET->RCR;
+      k64f_phy.rcr &= ~ENET_RCR_RMII_10T_MASK;
+      k64f_phy.rcr |= ENET_RCR_RMII_10T(!k64f_phy.crt_state.speed);
+      ENET->RCR = k64f_phy.rcr;
     }
 
-    prev_state = crt_state;
-    osDelay(PHY_TASK_PERIOD_MS);
-  }
+    k64f_phy.prev_state = k64f_phy.crt_state;
+//    osDelay(PHY_TASK_PERIOD_MS);
+//  }
 }
 
 /**
@@ -700,22 +737,26 @@ err_t eth_arch_enetif_init(struct netif *netif)
   LWIP_ASSERT("TXLockMutex creation error", (err == ERR_OK));
 
   /* Packet receive task */
-  err = sys_sem_new(&k64f_enetdata.RxReadySem, 0);
-  LWIP_ASSERT("RxReadySem creation error", (err == ERR_OK));
+  //err = sys_sem_new(&k64f_enetdata.RxReadySem, 0);
+  //LWIP_ASSERT("RxReadySem creation error", (err == ERR_OK));
 
-#ifdef LWIP_DEBUG
-  sys_thread_new("receive_thread", packet_rx, netif->state, DEFAULT_THREAD_STACKSIZE*5, RX_PRIORITY);
-#else
-  sys_thread_new("receive_thread", packet_rx, netif->state, DEFAULT_THREAD_STACKSIZE, RX_PRIORITY);
-#endif
+//#ifdef LWIP_DEBUG
+//  sys_thread_new("receive_thread", packet_rx, netif->state, DEFAULT_THREAD_STACKSIZE*5, RX_PRIORITY);
+//#else
+//  sys_thread_new("receive_thread", packet_rx, netif->state, DEFAULT_THREAD_STACKSIZE, RX_PRIORITY);
+//#endif
+  equeue_create(&k64f_enetdata.queue, 256);
+  equeue_call_every(&k64f_enetdata.queue, PHY_TASK_PERIOD_MS, k64f_phy_task, netif);
+
+  sys_thread_new("equeue_thread", k64f_dispatch, netif->state, DEFAULT_THREAD_STACKSIZE, RX_PRIORITY);
 
   /* Transmit cleanup task */
-  err = sys_sem_new(&k64f_enetdata.TxCleanSem, 0);
-  LWIP_ASSERT("TxCleanSem creation error", (err == ERR_OK));
-  sys_thread_new("txclean_thread", packet_tx, netif->state, DEFAULT_THREAD_STACKSIZE, TX_PRIORITY);
+  //err = sys_sem_new(&k64f_enetdata.TxCleanSem, 0);
+  //LWIP_ASSERT("TxCleanSem creation error", (err == ERR_OK));
+  //sys_thread_new("txclean_thread", packet_tx, netif->state, DEFAULT_THREAD_STACKSIZE, TX_PRIORITY);
 
   /* PHY monitoring task */
-  sys_thread_new("phy_thread", k64f_phy_task, netif, DEFAULT_THREAD_STACKSIZE, PHY_PRIORITY);
+  //sys_thread_new("phy_thread", k64f_phy_task, netif, DEFAULT_THREAD_STACKSIZE, PHY_PRIORITY);
 
   /* Allow the PHY task to detect the initial link state and set up the proper flags */
   osDelay(10);
