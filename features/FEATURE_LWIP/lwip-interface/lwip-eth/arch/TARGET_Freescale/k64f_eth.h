@@ -27,25 +27,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef K64F_EMAC_CONFIG_H__
-#define K64F_EMAC_CONFIG_H__
+#ifndef K64F_ETH_H
+#define K64F_ETH_H
 
-#include "fsl_enet.h"
+#include "lwip/netif.h"
+#include "k64f_enet_config.h"
 
-#define ENET_RX_RING_LEN              (16)
-#define ENET_TX_RING_LEN              (8)
 
-#define ENET_ETH_MAX_FLEN             (1522) // recommended size for a VLAN frame
+/**
+ * Should be called at the beginning of the program to set up the
+ * network interface.
+ *
+ * This function should be passed as a parameter to netif_add().
+ *
+ * @param[in] netif the lwip network interface structure for this netif
+ * @return ERR_OK if the loopif is initialized
+ *         ERR_MEM if private data couldn't be allocated
+ *         any other err_t on error
+ */
+err_t eth_arch_enetif_init(struct netif *netif);
 
-#if defined(__cplusplus)
-extern "C" {
+/**
+ * Called to enable interrupts
+ */
+void eth_arch_enable_interrupts(void);
+
+/**
+ * Called to disable interrupts
+ */
+void eth_arch_disable_interrupts(void);
+
+
 #endif
-
-int phy_link_status(void);
-
-#if defined(__cplusplus)
-}
-#endif
-
-#endif // #define K64F_EMAC_CONFIG_H__
-
