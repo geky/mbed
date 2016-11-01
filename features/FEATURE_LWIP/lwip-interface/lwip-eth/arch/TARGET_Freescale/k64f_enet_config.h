@@ -35,12 +35,12 @@
 
 
 /* ring length for tx/rx */
-#define ENET_RX_RING_LEN    (16)
-#define ENET_TX_RING_LEN    (8)
+#define ENET_RX_RING_LEN    (4)
+#define ENET_TX_RING_LEN    (4)
 
 /* number of allocated events for event queue,
    if exhausted ethernet packets may be lost */
-#define ENET_EVENT_COUNT    (8)
+#define ENET_EVENT_COUNT    (4)
 
 /* maximum frame length of ethernet packet */
 #define ENET_ETH_MAX_FLEN   (1522) // recommended size for a VLAN frame
