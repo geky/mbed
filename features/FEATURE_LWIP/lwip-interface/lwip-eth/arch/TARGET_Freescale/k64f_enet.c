@@ -114,7 +114,7 @@ static void k64f_rx_input(void *param)
   p->len = length;
 
   /* Attempt to queue new buffer */
-  struct pbuf *rxp = pbuf_alloc(PBUF_RAW, ENET_ETH_MAX_FLEN + ENET_BUFF_ALIGNMENT, PBUF_RAM);
+  struct pbuf *rxp = pbuf_alloc(PBUF_RAW, ENET_ETH_MAX_FLEN + ENET_BUFF_ALIGNMENT, PBUF_POOL);
   if (!rxp) {
     /* Drop frame (out of memory) */
     LINK_STATS_INC(link.drop);
@@ -258,7 +258,7 @@ err_t k64f_enet_init(struct netif *netif)
 
   /* Create buffers for each receive BD */
   for (int i = 0; i < ENET_RX_RING_LEN; i++) {
-    struct pbuf *rxp = pbuf_alloc(PBUF_RAW, ENET_ETH_MAX_FLEN + ENET_BUFF_ALIGNMENT, PBUF_RAM);
+    struct pbuf *rxp = pbuf_alloc(PBUF_RAW, ENET_ETH_MAX_FLEN + ENET_BUFF_ALIGNMENT, PBUF_POOL);
     if (!rxp) {
       return ERR_MEM;
     }
@@ -335,7 +335,7 @@ err_t k64f_enet_init(struct netif *netif)
  */
 err_t k64f_enet_output(struct netif *netif, struct pbuf *p)
 {
-  struct pbuf *txp = pbuf_alloc(PBUF_RAW, p->tot_len + ENET_BUFF_ALIGNMENT, PBUF_RAM);
+  struct pbuf *txp = pbuf_alloc(PBUF_RAW, p->tot_len + ENET_BUFF_ALIGNMENT, PBUF_POOL);
   if (!txp) {
     return ERR_MEM;
   }
