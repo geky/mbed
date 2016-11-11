@@ -21,8 +21,7 @@
 
 DeviceBlockDevice::DeviceBlockDevice()
 {
-    extern block_device_t *get_block_device();
-    _bd = get_block_device();
+    _bd = bd_get_block_device();
 }
 
 DeviceBlockDevice::DeviceBlockDevice(block_device_t *bd)

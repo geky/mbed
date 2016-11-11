@@ -19,8 +19,10 @@
 
 #include <stdint.h>
 
-// predeclared structure
-typedef struct block_device block_device_t;
+
+/** Opaque type for block device
+ */
+typedef void *block_device_t;
 
 /** Enum of standard error codes
  *
@@ -58,6 +60,12 @@ typedef uint32_t bd_count_t;
  */
 typedef int32_t bd_count_or_error_t;
 
+
+/** Get the default block device
+ *
+ *  @return         Default block device
+ */
+block_device_t *bd_get_block_device(void);
 
 /** Initialize a block device
  *
@@ -122,30 +130,6 @@ bd_size_t bd_get_block_size(block_device_t *bd);
  *  @return         The number of blocks on the device
  */
 bd_count_t bd_get_block_count(block_device_t *bd);
-
-
-/** Structure of operations for an implementation of a block device
- */
-typedef struct block_device_ops {
-    bd_error_t (*init)(void *bd);
-    bd_error_t (*deinit)(void *bd);
-    bd_count_or_error_t (*read)(void *bd, void *buffer, bd_block_t block, bd_count_t count);
-    bd_count_or_error_t (*write)(void *bd, const void *buffer, bd_block_t block, bd_count_t count);
-    bd_error_t (*sync)(void *bd);
-    bd_status_t (*get_status)(void *bd);
-    bd_size_t (*get_block_size)(void *bd);
-    bd_count_t (*get_block_count)(void *bd);
-} block_device_ops_t;
-
-/** Opaque structure of a block device
- *
- *  Operations in the ops table are passed the context pointer
- *  to specify the specific block device
- */
-typedef struct block_device {
-    const block_device_ops_t *ops;
-    void *bd;
-} block_device_t;
 
 
 #endif
