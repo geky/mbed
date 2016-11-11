@@ -59,7 +59,8 @@ PlatformMutex * get_fat_mutex() {
     return mutex;
 }
 
-FATFileSystem::FATFileSystem(const char* n) : FileSystemLike(n), _mutex(get_fat_mutex()) {
+FATFileSystem::FATFileSystem(const char* n, BlockDevice *device)
+        : FileSystemLike(n), _mutex(get_fat_mutex()), _device(device) {
     lock();
     debug_if(FFS_DBG, "FATFileSystem(%s)\n", n);
     for(int i=0; i<_VOLUMES; i++) {
@@ -69,6 +70,7 @@ FATFileSystem::FATFileSystem(const char* n) : FileSystemLike(n), _mutex(get_fat_
             _fsid[1] = '\0';
             debug_if(FFS_DBG, "Mounting [%s] on ffs drive [%s]\n", getName(), _fsid);
             f_mount(&_fs, _fsid, 0);
+            _device->init();
             unlock();
             return;
         }
@@ -83,6 +85,7 @@ FATFileSystem::~FATFileSystem() {
         if (_ffs[i] == this) {
             _ffs[i] = 0;
             f_mount(NULL, _fsid, 0);
+            _device->deinit();
         }
     }
     unlock();
@@ -152,7 +155,7 @@ int FATFileSystem::rename(const char *oldname, const char *newname) {
 
 int FATFileSystem::format() {
     lock();
-    FRESULT res = f_mkfs(_fsid, 0, 512); // Logical drive number, Partitioning rule, Allocation unit size (bytes per cluster)
+    FRESULT res = f_mkfs(_fsid, 0, _device->get_block_size()); // Logical drive number, Partitioning rule, Allocation unit size (bytes per cluster)
     if (res) {
         debug_if(FFS_DBG, "f_mkfs() failed: %d\n", res);
         unlock();
@@ -206,4 +209,17 @@ void FATFileSystem::lock() {
 
 void FATFileSystem::unlock() {
     _mutex->unlock();
+}
+
+int FATFileSystem::disk_read(uint8_t *buffer, uint32_t sector, uint32_t count) {
+    return _device->read(buffer, sector, count);
+}
+int FATFileSystem::disk_write(const uint8_t *buffer, uint32_t sector, uint32_t count) {
+    return _device->write(buffer, sector, count);
+}
+int FATFileSystem::disk_sync() {
+    return _device->sync();
+}
+uint32_t FATFileSystem::disk_sectors() {
+    return _device->get_block_count();
 }
