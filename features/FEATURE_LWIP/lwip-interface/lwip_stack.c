@@ -491,7 +491,6 @@ nsapi_error_t mbed_lwip_bringup(bool dhcp, const char *ip, const char *netmask, 
         if (ret == SYS_ARCH_TIMEOUT) {
             return NSAPI_ERROR_DHCP_FAILURE;
         }
-        lwip_connected = true;
     }
 
 #if ADDR_TIMEOUT
@@ -506,6 +505,7 @@ nsapi_error_t mbed_lwip_bringup(bool dhcp, const char *ip, const char *netmask, 
     add_dns_addr(&lwip_netif);
 #endif
 
+    lwip_connected = true;
     return 0;
 }
 
