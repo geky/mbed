@@ -21,6 +21,10 @@
  * a description of the individual test case.
  */
 
+#ifndef FEATURE_SD
+    #error [NOT_SUPPORTED] SD card required
+#endif
+
 #include "mbed.h"
 #include "SDFileSystem.h"
 #include "fsfat_debug.h"
