@@ -3,7 +3,7 @@
 #include "unity.h"
 #include "utest.h"
 
-#include "MemBlockDevice.h"
+#include "HeapBlockDevice.h"
 #include "FATFileSystem.h"
 #include <stdlib.h>
 
@@ -11,7 +11,7 @@ using namespace utest::v1;
 
 // Test block device
 #define BLOCK_SIZE 512
-MemBlockDevice bd(128, BLOCK_SIZE);
+HeapBlockDevice bd(128, BLOCK_SIZE);
 
 
 void test_format() {
