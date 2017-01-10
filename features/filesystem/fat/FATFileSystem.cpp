@@ -50,6 +50,10 @@ DWORD get_fattime(void) {
 }
 
 // Implementation of diskio functions (see ChaN/diskio.h)
+static DWORD disk_cluster(DWORD block_size) {
+    return (512+block_size-1) / block_size;
+}
+
 DSTATUS disk_status(BYTE pdrv) {
     debug_if(FFS_DBG, "disk_status on pdrv [%d]\n", pdrv);
     return (DSTATUS)_ffs[pdrv]->status();
@@ -62,14 +66,16 @@ DSTATUS disk_initialize(BYTE pdrv) {
 
 DRESULT disk_read(BYTE pdrv, BYTE *buff, DWORD sector, UINT count) {
     debug_if(FFS_DBG, "disk_read(sector %d, count %d) on pdrv [%d]\n", sector, count, pdrv);
-    int res = _ffs[pdrv]->read(buff, sector, count);
-    return (res != (int)count) ? RES_PARERR : RES_OK;
+    int cluster = disk_cluster(_ffs[pdrv]->get_block_size());
+    int res = _ffs[pdrv]->read(buff, sector*cluster, count*cluster);
+    return (res != (int)(count*cluster)) ? RES_PARERR : RES_OK;
 }
 
 DRESULT disk_write(BYTE pdrv, const BYTE *buff, DWORD sector, UINT count) {
     debug_if(FFS_DBG, "disk_write(sector %d, count %d) on pdrv [%d]\n", sector, count, pdrv);
-    int res = _ffs[pdrv]->write(buff, sector, count);
-    return (res != (int)count) ? RES_PARERR : RES_OK;
+    int cluster = disk_cluster(_ffs[pdrv]->get_block_size());
+    int res = _ffs[pdrv]->write(buff, sector*cluster, count*cluster);
+    return (res != (int)(count*cluster)) ? RES_PARERR : RES_OK;
 }
 
 DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff) {
@@ -87,24 +93,26 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff) {
                 return RES_NOTRDY;
             } else {
                 DWORD res = _ffs[pdrv]->get_block_count();
-                if (res > 0) {
-                    *((DWORD*)buff) = res; // minimum allowed
-                    return RES_OK;
-                } else {
+                if (res <= 0) {
                     return RES_ERROR;
                 }
+
+                DWORD cluster = disk_cluster(_ffs[pdrv]->get_block_size());
+                *((DWORD*)buff) = res / cluster;
+                return RES_OK;
             }
         case GET_SECTOR_SIZE:
             if (_ffs[pdrv] == NULL) {
                 return RES_NOTRDY;
             } else {
                 DWORD res = _ffs[pdrv]->get_block_size();
-                if (res > 0) {
-                    *((DWORD*)buff) = res; // minimum allowed
-                    return RES_OK;
-                } else {
+                if (res <= 0) {
                     return RES_ERROR;
                 }
+
+                DWORD cluster = disk_cluster(_ffs[pdrv]->get_block_size());
+                *((DWORD*)buff) = res * cluster;
+                return RES_OK;
             }
         case GET_BLOCK_SIZE:
             *((DWORD*)buff) = 1; // default when not known
