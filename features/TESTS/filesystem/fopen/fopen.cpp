@@ -22,12 +22,14 @@
  */
 
 #include "mbed.h"
-#include "SDFileSystem.h"
 #include "fsfat_debug.h"
 #include "fsfat_test.h"
 #include "utest/utest.h"
 #include "unity/unity.h"
 #include "greentea-client/test_env.h"
+
+#include "HeapBlockDevice.h"
+#include "FATFileSystem.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -46,74 +48,10 @@ using namespace utest::v1;
 /// @endcond
 
 
-/* DEVICE_SPI
- *  This symbol is defined in targets.json if the target has a SPI interface, which is required for SDCard support.
- * FSFAT_SDCARD_INSTALLTED
- *  For testing purposes, an SDCard must be installed on the target for the test cases in this file to succeed.
- *  If the target has an SD card installed then uncomment the #define FSFAT_SDCARD_INSTALLED directive for the target.
- */
-/* #define FSFAT_SDCARD_INSTALLED */
-#if defined(DEVICE_SPI) && defined(FSFAT_SDCARD_INSTALLED)
-
 static char fsfat_fopen_utest_msg_g[FSFAT_UTEST_MSG_BUF_SIZE];
 
-#if defined(TARGET_KL25Z)
-SDFileSystem sd(PTD2, PTD3, PTD1, PTD0, "sd");
-
-#elif defined(TARGET_KL46Z) || defined(TARGET_KL43Z)
-SDFileSystem sd(PTD6, PTD7, PTD5, PTD4, "sd");
-
-#elif defined(TARGET_K64F) || defined(TARGET_K66F)
-SDFileSystem sd(PTE3, PTE1, PTE2, PTE4, "sd");
-
-#elif defined(TARGET_K22F)
-SDFileSystem sd(PTD6, PTD7, PTD5, PTD4, "sd");
-
-#elif defined(TARGET_K20D50M)
-SDFileSystem sd(PTD2, PTD3, PTD1, PTC2, "sd");
-
-#elif defined(TARGET_nRF51822)
-SDFileSystem sd(p12, p13, p15, p14, "sd");
-
-#elif defined(TARGET_NUCLEO_F030R8) || \
-      defined(TARGET_NUCLEO_F070RB) || \
-      defined(TARGET_NUCLEO_F072RB) || \
-      defined(TARGET_NUCLEO_F091RC) || \
-      defined(TARGET_NUCLEO_F103RB) || \
-      defined(TARGET_NUCLEO_F302R8) || \
-      defined(TARGET_NUCLEO_F303RE) || \
-      defined(TARGET_NUCLEO_F334R8) || \
-      defined(TARGET_NUCLEO_F401RE) || \
-      defined(TARGET_NUCLEO_F410RB) || \
-      defined(TARGET_NUCLEO_F411RE) || \
-      defined(TARGET_NUCLEO_L053R8) || \
-      defined(TARGET_NUCLEO_L073RZ) || \
-      defined(TARGET_NUCLEO_L152RE)
-SDFileSystem sd(D11, D12, D13, D10, "sd");
-
-
-#elif defined(TARGET_DISCO_F051R8) || \
-      defined(TARGET_NUCLEO_L031K6)
-SDFileSystem sd(SPI_MOSI, SPI_MISO, SPI_SCK, SPI_CS, "sd");
-
-#elif defined(TARGET_LPC2368)
-SDFileSystem sd(p11, p12, p13, p14, "sd");
-
-#elif defined(TARGET_LPC11U68)
-SDFileSystem sd(D11, D12, D13, D10, "sd");
-
-#elif defined(TARGET_LPC1549)
-SDFileSystem sd(D11, D12, D13, D10, "sd");
-
-#elif defined(TARGET_RZ_A1H)
-SDFileSystem sd(P8_5, P8_6, P8_3, P8_4, "sd");
-
-#elif defined(TARGET_LPC11U37H_401)
-SDFileSystem sd(SDMOSI, SDMISO, SDSCLK, SDSSEL, "sd");
-
-#else
-#error "[NOT SUPPORTED] Instantiate SDFileSystem sd(p11, p12, p13, p14, "sd") with the correct pin specification for target"
-#endif
+HeapBlockDevice bd(512, 256);
+FATFileSystem sd("sd", &bd);
 
 
 #define FSFAT_FOPEN_TEST_01      fsfat_fopen_test_01
@@ -350,8 +288,6 @@ static control_t fsfat_fopen_test_01(const size_t call_count)
     TEST_ASSERT_MESSAGE(ret == 0, fsfat_fopen_utest_msg_g);
     return CaseNext;
 }
-
-#ifdef NOT_DEFINED
 
 static fsfat_kv_data_t fsfat_fopen_test_02_data[] = {
         FSFAT_INIT_1_TABLE_MID_NODE,
@@ -793,29 +729,6 @@ control_t fsfat_fopen_test_07(const size_t call_count)
     return CaseNext;
 }
 
-#endif // NOT_DEFINED
-
-#else
-
-#define FSFAT_FOPEN_TEST_01      fsfat_fopen_test_dummy
-#define FSFAT_FOPEN_TEST_02      fsfat_fopen_test_dummy
-#define FSFAT_FOPEN_TEST_03      fsfat_fopen_test_dummy
-#define FSFAT_FOPEN_TEST_04      fsfat_fopen_test_dummy
-#define FSFAT_FOPEN_TEST_05      fsfat_fopen_test_dummy
-#define FSFAT_FOPEN_TEST_06      fsfat_fopen_test_dummy
-#define FSFAT_FOPEN_TEST_07      fsfat_fopen_test_dummy
-
-/** @brief  fsfat_fopen_test_dummy    Dummy test case for testing when platform doesnt have an SDCard installed.
- *
- * @return success always
- */
-static control_t fsfat_fopen_test_dummy()
-{
-    printf("Null test\n");
-    return CaseNext;
-}
-
-#endif  /* defined(DEVICE_SPI) && defined(FSFAT_SDCARD_INSTALLED) */
 
 
 /// @cond FSFAT_DOXYGEN_DISABLE
@@ -829,16 +742,12 @@ Case cases[] = {
            /*          1         2         3         4         5         6        7  */
            /* 1234567890123456789012345678901234567890123456789012345678901234567890 */
         Case("FOPEN_test_01", FSFAT_FOPEN_TEST_01)
-
-#ifdef NOT_DEFINED
         Case("FOPEN_test_02", FSFAT_FOPEN_TEST_02),
         Case("FOPEN_test_03", FSFAT_FOPEN_TEST_03),
         Case("FOPEN_test_04", FSFAT_FOPEN_TEST_04),
         Case("FOPEN_test_05", FSFAT_FOPEN_TEST_05),
         Case("FOPEN_test_06", FSFAT_FOPEN_TEST_06),
         Case("FOPEN_test_07", FSFAT_FOPEN_TEST_07),
-#endif // NOT_DEFINED
-
 };
 
 
