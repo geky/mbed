@@ -215,10 +215,11 @@ static int32_t fsfat_filepath_split(char* filepath, char* parts[], uint32_t num)
  *
  * ARGUMENTS
  *  @param  filepath     IN file path string to split into component parts. Expected to start with '/'
+ *  @param  mountpoint   IN the mountpoint dir (without trailing '/'), which is the root directory that will not be deleted. Can be null
  *
  * @return  On success, this returns 0, otherwise < 0 is returned;
  */
-int32_t fsfat_filepath_remove_all(char* filepath)
+int32_t fsfat_filepath_remove_all(char* filepath, char* mountpoint)
 {
     int32_t ret = -1;
     char *fpathbuf = NULL;
@@ -234,6 +235,10 @@ int32_t fsfat_filepath_remove_all(char* filepath)
     /* delete the leaf node first, and then successively parent directories. */
     pos = fpathbuf + strlen(fpathbuf);
     while (pos != fpathbuf) {
+        if (mountpoint != NULL && strlen(mountpoint) == strlen(fpathbuf) && strncmp(filepath, mountpoint, strlen(mountpoint)) == 0) {
+            /* dont delete the mountpoint dir*/
+            break;
+        }
         FSFAT_DBGLOG("%s:Removing %s\n", __func__, fpathbuf);
         ret = remove(fpathbuf);
         pos = strrchr(fpathbuf, '/');
@@ -323,7 +328,7 @@ static control_t fsfat_fopen_test_01(const size_t call_count)
     node = fsfat_fopen_test_01_kv_data;
 
     /* remove file and directory from a previous failed test run, if present */
-    fsfat_filepath_remove_all((char*) node->filename);
+    fsfat_filepath_remove_all((char*) node->filename, NULL);
 
     /* create dirs */
     ret = fsfat_filepath_make_dirs((char*) node->filename, true);
@@ -1050,7 +1055,7 @@ control_t fsfat_fopen_test_19(const size_t call_count)
 
 /* file data for test_20 */
 static fsfat_kv_data_t fsfat_fopen_test_20_kv_data[] = {
-        { "/sd/test_20", "test_dir"},
+        { "/sd/test_20/", "test_dir"},      /* trailing '/' required on end of path for directory creation code */
         { NULL, NULL},
 };
 /** @brief  test for operation of mkdir()
@@ -1063,6 +1068,10 @@ control_t fsfat_fopen_test_20(const size_t call_count)
 
     FSFAT_DBGLOG("%s:entered\n", __func__);
     (void) call_count;
+
+    /* make sure the directory doesnt exist before the test starts
+     * (e.g. due to previously failed test run) */
+    fsfat_filepath_remove_all((char*) fsfat_fopen_test_20_kv_data[0].filename, "/sd");
 
     errno = 0;
     ret = fsfat_filepath_make_dirs((char*) fsfat_fopen_test_20_kv_data[0].filename, false);
@@ -1079,7 +1088,7 @@ control_t fsfat_fopen_test_20(const size_t call_count)
     FSFAT_TEST_UTEST_MESSAGE(fsfat_fopen_utest_msg_g, FSFAT_UTEST_MSG_BUF_SIZE, "%s:Error: errno != EEXIST (dirname=%s, ret=%d, errno=%d)\n", __func__, fsfat_fopen_test_20_kv_data[0].filename, (int) ret, errno);
     TEST_ASSERT_MESSAGE(errno == EEXIST, fsfat_fopen_utest_msg_g);
 
-    ret = fsfat_filepath_remove_all((char*) fsfat_fopen_test_20_kv_data[0].filename);
+    ret = fsfat_filepath_remove_all((char*) fsfat_fopen_test_20_kv_data[0].filename, "/sd");
     FSFAT_TEST_UTEST_MESSAGE(fsfat_fopen_utest_msg_g, FSFAT_UTEST_MSG_BUF_SIZE, "%s:Error: failed to remove directory (dirname=%s, ret=%d, errno=%d)\n", __func__, fsfat_fopen_test_20_kv_data[0].filename, (int) ret, errno);
     TEST_ASSERT_MESSAGE(ret == 0, fsfat_fopen_utest_msg_g);
 
