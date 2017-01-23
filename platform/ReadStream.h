@@ -23,6 +23,8 @@ namespace mbed {
 /** \addtogroup platform */
 /** @{*/
 
+class WriteStream;
+
 
 /** ReadStream - Interface for reading from streams of bytes
  */
@@ -73,6 +75,17 @@ public:
      *  @see scanf
      */
     ssize_t vscanf(const char *format, va_list args);
+
+    /** Write to a write stream from the underlying read stream
+     *
+     *  Continues to write to the write stream until the underlying
+     *  read stream becomes empty
+     *
+     *  @param stream   Write stream to write to from underlying stream
+     *  @param buffer   Size of buffer to use in bytes
+     *  @return         Number of written bytes, negative value on failure
+     */
+    ssize_t cat(WriteStream *stream, size_t buffer=32);
 };
 
 

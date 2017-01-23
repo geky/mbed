@@ -62,3 +62,7 @@ ssize_t ReadStream::scanf(const char *format, ...) {
 ssize_t ReadStream::vscanf(const char *format, va_list args) {
     return vcbscanf(callback(this, &ReadStream::read), format, args);
 }
+
+ssize_t ReadStream::cat(WriteStream *stream, size_t buffer) {
+    return stream->cat(this, buffer);
+}

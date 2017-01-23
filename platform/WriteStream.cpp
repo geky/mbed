@@ -60,5 +60,20 @@ ssize_t WriteStream::printf(const char *format, ...) {
 }
 
 ssize_t WriteStream::vprintf(const char *format, va_list args) {
-    return vcbprintf(callback(this, &WriteStream::write), format, args);
+    return vcbprintf(callback(this, (ssize_t (WriteStream::*)(const void *, size_t))&WriteStream::write), format, args);
+}
+
+ssize_t WriteStream::cat(ReadStream *stream, size_t size) {
+    uint8_t *buffer = new uint8_t[size];
+    while (true) {
+        ssize_t r = stream->read(buffer, size);
+        if (r <= 0) {
+            return r;
+        }
+
+        r = this->writeall(buffer, r);
+        if (r <= 0) {
+            return r;
+        }
+    }
 }
