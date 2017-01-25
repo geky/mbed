@@ -97,6 +97,9 @@
 // mbed Non-hardware components
 #include "platform/Callback.h"
 #include "platform/FunctionPointer.h"
+#include "platform/mbed_format.h"
+#include "platform/ReadStream.h"
+#include "platform/WriteStream.h"
 
 using namespace mbed;
 using namespace std;
