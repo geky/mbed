@@ -17,6 +17,7 @@
 #define MBED_READ_STREAM_H
 
 #include "platform/platform.h"
+#include "platform/Pollable.h"
 #include <cstdarg>
 
 namespace mbed {
@@ -26,7 +27,7 @@ namespace mbed {
 
 /** ReadStream - Interface for reading from streams of bytes
  */
-class ReadStream {
+class ReadStream : public virtual Pollable {
 public:
     /** ReadStream lifetime
      */
@@ -39,6 +40,14 @@ public:
      *  @return         Number of read bytes, negative value on failure
      */
     virtual ssize_t read(void *buffer, size_t size) = 0;
+
+    /** Check if data is available to be read
+     *
+     *  @return         Lower bound on the number of bytes that could be read
+     *                  or a negative value on failure. May return a lower value
+     *                  or 1 if number of bytes is unknown.
+     */
+    virtual ssize_t readable() = 0;
 
     /** Read data from the underlying stream until size has been read
      *

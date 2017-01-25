@@ -100,6 +100,7 @@
 #include "platform/mbed_format.h"
 #include "platform/ReadStream.h"
 #include "platform/WriteStream.h"
+#include "platform/ReadWriteStream.h"
 
 using namespace mbed;
 using namespace std;

@@ -17,6 +17,7 @@
 #define MBED_WRITE_STREAM_H
 
 #include "platform/platform.h"
+#include "platform/Pollable.h"
 #include <cstdarg>
 
 namespace mbed {
@@ -26,7 +27,7 @@ namespace mbed {
 
 /** WriteStream - Interface for writing to streams of bytes
  */
-class WriteStream {
+class WriteStream : public virtual Pollable {
 public:
     /** WriteStream lifetime
      */
@@ -39,6 +40,14 @@ public:
      *  @return         Number of written bytes, negative value on failure
      */
     virtual ssize_t write(const void *buffer, size_t size) = 0;
+
+    /** Check if data is available to be written
+     *
+     *  @return         Lower bound on the number of bytes that could be written
+     *                  or a negative value on failure. May return a lower value
+     *                  or 1 if number of bytes is unknown.
+     */
+    virtual ssize_t writeable() = 0;
 
     /** Write data to the underlying stream until all data has been written
      *
