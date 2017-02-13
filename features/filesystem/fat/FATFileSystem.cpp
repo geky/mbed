@@ -169,8 +169,7 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff) {
 
 // Filesystem implementation (See FATFilySystem.h)
 FATFileSystem::FATFileSystem(const char *name, BlockDevice *bd)
-        : /*FileSystem(n),*/ _id(-1) {
-    // TODO handle mount name
+        : FileSystem(name), _id(-1) {
     if (bd) {
         mount(bd);
     }
@@ -199,7 +198,7 @@ int FATFileSystem::mount(BlockDevice *bd, bool force) {
             _ffs[_id] = bd;
             _fsid[0] = '0' + _id;
             _fsid[1] = '\0';
-            //debug_if(FFS_DBG, "Mounting [%s] on ffs drive [%s]\n", getName(), _fsid); TODO FIXME
+            debug_if(FFS_DBG, "Mounting [%s] on ffs drive [%s]\n", getName(), _fsid);
             FRESULT res = f_mount(&_fs, _fsid, force);
             fat_filesystem_set_errno(res);
             unlock();
@@ -229,7 +228,7 @@ int FATFileSystem::unmount() {
 /* See http://elm-chan.org/fsw/ff/en/mkfs.html for details of f_mkfs() and
  * associated arguments. */
 int FATFileSystem::format(BlockDevice *bd, int allocation_unit) {
-    FATFileSystem fs("");
+    FATFileSystem fs;
     int err = fs.mount(bd, false);
     if (err) {
         return -1;
@@ -319,9 +318,9 @@ void FATFileSystem::unlock() {
 ////// File operations //////
 int FATFileSystem::file_open(fs_file_t *file, const char *path, int flags) {
     lock();
-    //debug_if(FFS_DBG, "open(%s) on filesystem [%s], drv [%s]\n", name, getName(), _fsid); TODO FIXME
-    char n[64];
-    sprintf(n, "%s:/%s", _fsid, path);
+    debug_if(FFS_DBG, "open(%s) on filesystem [%s], drv [%s]\n", path, getName(), _fsid);
+    char *buffer = new char[strlen(_fsid) + strlen(path) + 3];
+    sprintf(buffer, "%s:/%s", _fsid, path);
 
     /* POSIX flags -> FatFS open mode */
     BYTE openmode;
@@ -341,7 +340,7 @@ int FATFileSystem::file_open(fs_file_t *file, const char *path, int flags) {
     }
 
     FIL *fh = new FIL;
-    FRESULT res = f_open(fh, n, openmode);
+    FRESULT res = f_open(fh, buffer, openmode);
     fat_filesystem_set_errno(res);
     delete[] buffer;
 
