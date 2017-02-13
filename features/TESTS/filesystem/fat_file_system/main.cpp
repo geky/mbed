@@ -19,8 +19,6 @@
 #include "utest.h"
 
 #include "HeapBlockDevice.h"
-#include "File.h"
-#include "Dir.h"
 #include "FATFileSystem.h"
 #include <stdlib.h>
 #include "retarget.h"
