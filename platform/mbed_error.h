@@ -19,6 +19,16 @@
 #ifndef MBED_ERROR_H
 #define MBED_ERROR_H
 
+#include <stdlib.h>
+#include <stdarg.h>
+#include "device.h"
+#include "platform/toolchain.h"
+#include "platform/mbed_error.h"
+#include "platform/mbed_interface.h"
+#if DEVICE_STDIO_MESSAGES
+#include <stdio.h>
+#endif
+
 /** To generate a fatal compile-time error, you can use the pre-processor #error directive.
  *
  * @code
@@ -60,7 +70,17 @@
 extern "C" {
 #endif
 
-void error(const char* format, ...);
+
+static inline void error(const char *format, ...) {
+#ifndef NDEBUG
+    va_list arg;
+    va_start(arg, format);
+    mbed_error_vfprintf(format, arg);
+    va_end(arg);
+#endif
+    while (1) {}
+}
+
 
 #ifdef __cplusplus
 }

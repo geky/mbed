@@ -23,7 +23,9 @@
 #include <stdio.h>
 #endif
 
+#if 0
 WEAK void error(const char* format, ...) {
+#ifndef NDEBUG
 #ifndef NDEBUG
     va_list arg;
     va_start(arg, format);
@@ -32,3 +34,5 @@ WEAK void error(const char* format, ...) {
 #endif
     exit(1);
 }
+#endif
+#endif
