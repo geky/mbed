@@ -74,7 +74,7 @@ public:
      */
     MBED_DEPRECATED_SINCE("mbed-os-5.5",
         "Replaced by `int open(FileHandle **, ...)` for propagating error codes")
-    virtual FileHandle *open(const char *path, int flags)
+    FileHandle *open(const char *path, int flags)
     {
         FileHandle *file;
         int err = open(&file, path, flags);
@@ -89,7 +89,7 @@ public:
      */
     MBED_DEPRECATED_SINCE("mbed-os-5.5",
         "Replaced by `int open(DirHandle **, ...)` for propagating error codes")
-    virtual DirHandle *opendir(const char *path)
+    DirHandle *opendir(const char *path)
     {
         DirHandle *dir;
         int err = open(&dir, path);
