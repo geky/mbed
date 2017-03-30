@@ -100,6 +100,9 @@
 #include "hal/sleep_api.h"
 #include "platform/mbed_sleep.h"
 #include "platform/mbed_rtc_time.h"
+#include "platform/FileSystemHandle.h"
+#include "platform/FileHandle.h"
+#include "platform/DirHandle.h"
 
 // mbed Non-hardware components
 #include "platform/Callback.h"

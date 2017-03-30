@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef MBED_FILESYSTEMLIKE_H
-#define MBED_FILESYSTEMLIKE_H
+#ifndef MBED_FILESYSTEMHANDLE_H
+#define MBED_FILESYSTEMHANDLE_H
 
 #include "platform/platform.h"
 
-#include "platform/FileSystemHandle.h"
+#include "platform/FileBase.h"
 #include "platform/FileHandle.h"
 #include "platform/DirHandle.h"
-#include <errno.h>
 
 namespace mbed {
 /** \addtogroup drivers */
@@ -36,12 +35,11 @@ namespace mbed {
  *
  * @Note Synchronization level: Set by subclass
  */
-class FileSystemLike : public FileSystemHandle, public FileBase {
+class FileSystemHandle {
 public:
-    /** FileSystemLike lifetime
+    /** FileSystemHandle lifetime
      */
-    FileSystemLike(const char *name = NULL) : FileBase(name, FileSystemPathType) {}
-    virtual ~FileSystemLike() {}
+    virtual ~FileSystemHandle() {}
 
     /** Open a file on the filesystem
      *
@@ -59,42 +57,38 @@ public:
      *  @param path     Name of the directory to open
      *  @return         0 on success, negative error code on failure
      */
-    virtual int open(DirHandle **dir, const char *path)
-    {
-        return -ENOSYS;
-    }
+    virtual int open(DirHandle **dir, const char *path);
 
-    /** Open a file on the filesystem
+    /** Remove a file from the filesystem.
      *
-     *  @param path     The name of the file to open
-     *  @param flags    The flags to open the file in, one of O_RDONLY, O_WRONLY, O_RDWR,
-     *                  bitwise or'd with one of O_CREAT, O_TRUNC, O_APPEND
-     *  @return         A file handle on success, NULL on failure
-     *  @deprecated Replaced by `int open(FileHandle **, ...)` for propagating error codes
+     *  @param path     The name of the file to remove.
+     *  @return         0 on success, negative error code on failure
      */
-    MBED_DEPRECATED_SINCE("mbed-os-5.5",
-        "Replaced by `int open(FileHandle **, ...)` for propagating error codes")
-    virtual FileHandle *open(const char *path, int flags)
-    {
-        FileHandle *file;
-        int err = open(&file, path, flags);
-        return err ? NULL : file;
-    }
+    virtual int remove(const char *path);
 
-    /** Open a directory on the filesystem
+    /** Rename a file in the filesystem.
      *
-     *  @param path     Name of the directory to open
-     *  @return         A directory handle on success, NULL on failure
-     *  @deprecated Replaced by `int open(DirHandle **, ...)` for propagating error codes
+     *  @param path     The name of the file to rename.
+     *  @param newpath  The name to rename it to
+     *  @return         0 on success, negative error code on failure
      */
-    MBED_DEPRECATED_SINCE("mbed-os-5.5",
-        "Replaced by `int open(DirHandle **, ...)` for propagating error codes")
-    virtual DirHandle *opendir(const char *path)
-    {
-        DirHandle *dir;
-        int err = open(&dir, path);
-        return err ? NULL : dir;
-    }
+    virtual int rename(const char *path, const char *newpath);
+
+    /** Store information about the file in a stat structure
+     *
+     *  @param path     The name of the file to find information about
+     *  @param st       The stat buffer to write to
+     *  @return         0 on success, negative error code on failure
+     */
+    virtual int stat(const char *path, struct stat *st);
+
+    /** Create a directory in the filesystem.
+     *
+     *  @param path     The name of the directory to create.
+     *  @param mode     The permissions with which to create the directory
+     *  @return         0 on success, negative error code on failure
+     */
+    virtual int mkdir(const char *path, mode_t mode);
 };
 
 
