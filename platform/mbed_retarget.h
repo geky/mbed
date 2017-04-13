@@ -48,8 +48,8 @@ typedef int mode_t;     ///< Mode for opening files
 
 /* DIR declarations must also be here */
 #if __cplusplus
-namespace mbed { class Dir; }
-typedef mbed::Dir DIR;
+namespace mbed { class DirHandle; }
+typedef mbed::DirHandle DIR;
 #else
 typedef struct Dir DIR;
 #endif
