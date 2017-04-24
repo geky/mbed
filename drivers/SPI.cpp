@@ -78,6 +78,23 @@ int SPI::write(int value) {
     return ret;
 }
 
+int SPI::write(const char *outdata, int outlength, char *indata, int inlength) {
+    int total = (outlength > inlength) ? outlength : inlength;
+
+    lock();
+    aquire();
+    for (int i = 0; i < total; i++) {
+        char out = (i < outlength) ? outdata[i] : 0xff;
+        char in = spi_master_write(&_spi, out);
+        if (i < inlength) {
+            indata[i] = in;
+        }
+    }
+    unlock();
+
+    return total;
+}
+
 void SPI::lock() {
     _mutex->lock();
 }

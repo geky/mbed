@@ -115,8 +115,24 @@ public:
      *
      *  @returns
      *    Response from the SPI slave
-    */
+     */
     virtual int write(int value);
+
+    /** Write to the SPI Slave and obtain the response
+     *
+     *  The total number of bytes sent and recieved will be the maximum of
+     *  outlength and inlength. The bytes written will be padded with the
+     *  value 0xff.
+     *
+     *  @param outdata Pointer to the byte-array of data to write to the device
+     *  @param outlength Number of bytes to write
+     *  @param indata Pointer to the byte-array of data to read from the device
+     *  @param inlength Number of bytes to read from the device
+     *  @returns
+     *      The number of bytes written and read from the device. This is
+     *      maximum of outlength and inlength.
+     */
+    virtual int write(const char *outdata, int outlength, char *indata, int inlength);
 
     /** Acquire exclusive access to this SPI bus
      */
