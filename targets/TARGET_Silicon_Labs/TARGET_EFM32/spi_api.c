@@ -390,6 +390,20 @@ int spi_master_write(spi_t *obj, int value)
     return spi_read(obj);
 }
 
+int spi_master_block_write(spi_t *obj, const char *tx_buffer, int tx_length, char *rx_buffer, int rx_length) {
+    int total = (tx_length > rx_length) ? tx_length : rx_length;
+
+    for (int i = 0; i < total; i++) {
+        char out = (i < tx_length) ? tx_buffer[i] : 0xff;
+        char in = spi_master_write(obj, out);
+        if (i < rx_length) {
+            rx_buffer[i] = in;
+        }
+    }
+
+    return total;
+}
+
 inline uint8_t spi_master_tx_ready(spi_t *obj)
 {
     return (obj->spi.spi->STATUS & USART_STATUS_TXBL) ? true : false;
@@ -418,6 +432,20 @@ void spi_master_read_asynch_complete(spi_t *obj)
 void spi_master_write_asynch_complete(spi_t *obj)
 {
     obj->spi.spi->IFC = USART_IFC_TXC;
+}
+
+int spi_master_block_write(spi_t *obj, const char *tx_buffer, int tx_length, char *rx_buffer, int rx_length) {
+    int total = (tx_length > rx_length) ? tx_length : rx_length;
+
+    for (int i = 0; i < total; i++) {
+        char out = (i < tx_length) ? tx_buffer[i] : 0xff;
+        char in = spi_master_write(obj, out);
+        if (i < rx_length) {
+            rx_buffer[i] = in;
+        }
+    }
+
+    return total;
 }
 
 void spi_irq_handler(spi_t *obj)
@@ -533,6 +561,20 @@ int spi_master_write_asynch(spi_t *obj)
         ndata++;
     }
     return ndata;
+}
+
+int spi_master_block_write(spi_t *obj, const char *tx_buffer, int tx_length, char *rx_buffer, int rx_length) {
+    int total = (tx_length > rx_length) ? tx_length : rx_length;
+
+    for (int i = 0; i < total; i++) {
+        char out = (i < tx_length) ? tx_buffer[i] : 0xff;
+        char in = spi_master_write(obj, out);
+        if (i < rx_length) {
+            rx_buffer[i] = in;
+        }
+    }
+
+    return total;
 }
 
 int spi_master_read_asynch(spi_t *obj)
