@@ -35,6 +35,11 @@ typedef enum {
     USBTX,
     USBRX,
 
+    LED1,
+    LED2,
+
+    TEST_ANALOG_IN_1,
+    TEST_ANALOG_IN_2,
 
     STDIO_UART_TX = USBTX,
     STDIO_UART_RX  = USBRX,

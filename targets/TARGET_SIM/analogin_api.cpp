@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 #include "analogin_api.h"
+#include "SimulatedAnalogIn.h"
 
 void analogin_init(analogin_t *obj, PinName pin)
 {
-
+    SimulatedAnalogIn* per = (SimulatedAnalogIn*)SimulatedPeripheral::lookup(SimulatedPeripheral::ANALOGIN, pin);
+    obj->data = (void*)per;
+    per->init(obj, pin);
 }
 
 uint16_t analogin_read_u16(analogin_t *obj)
 {
-
+    return ((SimulatedAnalogIn*)(obj->data))->read_u16(obj);
 }
 
 float analogin_read(analogin_t *obj)
 {
-
+    return ((SimulatedAnalogIn*)(obj->data))->read(obj);
 }

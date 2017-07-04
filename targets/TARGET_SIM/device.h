@@ -25,43 +25,43 @@
 #include "PortNames.h"
 
 typedef struct {
-    char dummy;
+    void *data;
 } gpio_t;
 
 struct gpio_irq_s {
-    char dummy;
+    void *data;
 };
 
 struct port_s {
-    char dummy;
+    void *data;
 };
 
 struct pwmout_s {
-    char dummy;
+    void *data;
 };
 
 struct serial_s {
-    char dummy;
+    void *data;
 };
 
 struct analogin_s {
-    char dummy;
+    void *data;
 };
 
 struct i2c_s {
-    char dummy;
+    void *data;
 };
 
 struct spi_s {
-    char dummy;
+    void *data;
 };
 
 struct dac_s {
-    char dummy;
+    void *data;
 };
 
 struct trng_s {
-    char dummy;
+    void *data;
 };
 
 #define LED1 (PinName)1
