@@ -62,6 +62,9 @@ static SingletonPtr<PlatformMutex> _mutex;
 #   define STDOUT_FILENO    1
 #   define STDERR_FILENO    2
 
+#elif defined(TARGET_SIM)
+#   define OPEN_MAX         16
+
 #else
 #   include <sys/syslimits.h>
 #   define PREFIX(x)    x
@@ -106,6 +109,8 @@ void remove_filehandle(FileHandle *file) {
     filehandle_mutex->unlock();
 }
 }
+
+#if !defined(TARGET_SIM)
 
 #if DEVICE_SERIAL
 extern int stdio_uart_inited;
@@ -805,6 +810,8 @@ extern "C" void exit(int return_code) {
 #if !defined(TOOLCHAIN_GCC_ARM) && !defined(TOOLCHAIN_GCC_CR)
 } //namespace std
 #endif
+
+#endif /* #if !defined(TARGET_SIM) */
 
 #if defined(TOOLCHAIN_ARM) || defined(TOOLCHAIN_GCC)
 

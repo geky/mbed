@@ -3509,5 +3509,14 @@
         "device_name": "TMPM066FWUG",
         "detect_code": ["7011"],
         "release_versions": ["5"]
+    },
+    "SIM": {
+        "core": "",
+        "inherits": ["Target"],
+        "extra_labels": ["ARM_MBED"],
+        "supported_toolchains": ["GCC_HOST"],
+        "OUTPUT_EXT": "elf",
+        "device_has": ["INTERRUPTIN", "ANALOGIN", "ANALOGOUT", "I2C", "LOWPOWERTIMER", "PORTIN", "PORTINOUT", "PORTOUT", "PWMOUT", "RTC", "SERIAL", "SLEEP", "SPI", "STDIO_MESSAGES", "STORAGE", "TRNG"],
+        "release_versions": ["2", "5"]
     }
 }
