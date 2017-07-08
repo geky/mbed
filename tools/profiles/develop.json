@@ -14,6 +14,20 @@
                "-Wl,--wrap,_calloc_r", "-Wl,--wrap,exit", "-Wl,--wrap,atexit",
                "-Wl,-n"]
     },
+    "GCC_HOST": {
+        "common": ["-c", "-Wall", "-Wextra",
+                   "-Wno-unused-parameter", "-Wno-missing-field-initializers",
+                   "-fmessage-length=0", "-fno-exceptions", "-fno-builtin",
+                   "-ffunction-sections", "-fdata-sections", "-funsigned-char",
+                   "-MMD", "-fno-delete-null-pointer-checks",
+                   "-fomit-frame-pointer", "-O0", "-fpermissive", "-g3", "-D__CRT__NO_INLINE","--coverage"],
+        "asm": ["-x", "assembler-with-cpp", "-m32"],
+        "c": ["-std=gnu99", "-m32"],
+        "cxx": ["-std=gnu++98", "-fno-rtti", "-Wvla", "-m32"],
+        "ld": ["-Wl,--gc-sections", "-Wl,--wrap,main", "-Wl,--wrap,_malloc_r",
+               "-Wl,--wrap,_free_r", "-Wl,--wrap,_realloc_r", "-Wl,--wrap,_memalign_r",
+               "-Wl,--wrap,_calloc_r", "-m32", "-pthread", "--coverage"]
+    },
     "ARMC6": {
         "common": ["-c", "--target=arm-arm-none-eabi", "-mthumb", "-Os",
                    "-Wno-armcc-pragma-push-pop", "-Wno-armcc-pragma-anon-unions",

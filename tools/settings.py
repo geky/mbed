@@ -42,6 +42,9 @@ GCC_CR_PATH = ""
 # IAR
 IAR_PATH = ""
 
+# GCC_HOST
+GCC_HOST_PATH = ""
+
 # Goanna static analyser. Please overload it in mbed_settings.py
 GOANNA_PATH = ""
 
