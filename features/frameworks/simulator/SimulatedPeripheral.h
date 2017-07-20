@@ -31,7 +31,7 @@ public:
         PORTINOUT,
         PORTOUT,
         PWMOUT,
-        RTC,
+        _RTC, //TODO - Conflict with existing defines
         SERIAL,
         SPI,
         TRNG,
