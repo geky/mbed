@@ -21,6 +21,7 @@
 #include "HeapBlockDevice.h"
 #include "SlicingBlockDevice.h"
 #include "ChainingBlockDevice.h"
+#include "ClusteringBlockDevice.h"
 #include <stdlib.h>
 
 using namespace utest::v1;
@@ -176,6 +177,62 @@ void test_chaining() {
     TEST_ASSERT_EQUAL(0, err);
 }
 
+// Simple test which reads/writes blocks on a block device with clusters
+void test_clustering() {
+    HeapBlockDevice bd(BLOCK_COUNT*BLOCK_SIZE, BLOCK_SIZE/2);
+    uint8_t *write_block = new uint8_t[BLOCK_SIZE];
+    uint8_t *read_block = new uint8_t[BLOCK_SIZE];
+
+    // Create clustered block device
+    ClusteringBlockDevice clustered(&bd, BLOCK_SIZE);
+
+    int err = clustered.init();
+    TEST_ASSERT_EQUAL(0, err);
+
+    TEST_ASSERT_EQUAL(BLOCK_SIZE/2, clustered.get_read_size());
+    TEST_ASSERT_EQUAL(BLOCK_SIZE/2, clustered.get_program_size());
+    TEST_ASSERT_EQUAL(BLOCK_SIZE, clustered.get_erase_size());
+    TEST_ASSERT_EQUAL(BLOCK_COUNT*BLOCK_SIZE, clustered.size());
+
+    // Fill with random sequence
+    srand(1);
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        write_block[i] = 0xff & rand();
+    }
+
+    // Write, sync, and read the block
+    err = clustered.erase(0, BLOCK_SIZE);
+    TEST_ASSERT_EQUAL(0, err);
+
+    err = clustered.program(write_block, 0, BLOCK_SIZE);
+    TEST_ASSERT_EQUAL(0, err);
+
+    err = clustered.read(read_block, 0, BLOCK_SIZE);
+    TEST_ASSERT_EQUAL(0, err);
+
+    // Check that the data was unmodified
+    srand(1);
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        TEST_ASSERT_EQUAL(0xff & rand(), read_block[i]);
+    }
+
+    // Check with original block device
+    err = bd.read(read_block, 0, BLOCK_SIZE);
+    TEST_ASSERT_EQUAL(0, err);
+
+    // Check that the data was unmodified
+    srand(1);
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        TEST_ASSERT_EQUAL(0xff & rand(), read_block[i]);
+    }
+
+    err = clustered.deinit();
+    TEST_ASSERT_EQUAL(0, err);
+
+    delete[] write_block;
+    delete[] read_block;
+}
+
 
 // Test setup
 utest::v1::status_t test_setup(const size_t number_of_cases) {
@@ -186,6 +243,7 @@ utest::v1::status_t test_setup(const size_t number_of_cases) {
 Case cases[] = {
     Case("Testing slicing of a block device", test_slicing),
     Case("Testing chaining of block devices", test_chaining),
+    Case("Testing clustering of block devices", test_clustering),
 };
 
 Specification specification(test_setup, cases);
