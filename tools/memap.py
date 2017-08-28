@@ -44,6 +44,7 @@ class MemapParser(object):
         # list of all modules and their sections
         self.modules = dict()       # full list - doesn't change with depth
         self.short_modules = dict() # short version with specific depth
+        self.objects = dict()       # raw objects
 
         # sections must be defined in this order to take irrelevant out
         self.all_sections = self.sections + self.other_sections + \
@@ -85,12 +86,13 @@ class MemapParser(object):
                 temp_dic[section_idx] = 0
             self.modules[object_name] = temp_dic
 
-    def module_add(self, object_name, size, section):
+    def module_add(self, object_name, size, object_object, section):
         """ Adds a module / section to the list
 
         Positional arguments:
         object_name - name of the entry to add
         size - the size of the module being added
+        object_object - name of the specific object to add
         section - the section the module contributes to
         """
 
@@ -103,6 +105,16 @@ class MemapParser(object):
 
             if module_split == obj_split:
                 self.modules[module_path][section] += size
+
+                # Add the raw object
+                if size != 0 and object_object:
+                    new_object = dict()
+                    for section_idx in self.all_sections:
+                        new_object[section_idx] = 0
+                    new_object[section] = size
+                    object_object_name = '/'.join([module_path, object_object])
+                    self.objects[object_object_name] = new_object
+
                 return
 
         new_module = dict()
@@ -110,6 +122,16 @@ class MemapParser(object):
             new_module[section_idx] = 0
         new_module[section] = size
         self.modules[object_name] = new_module
+
+        # Add the raw object
+        if size != 0 and object_object:
+            new_object = dict()
+            for section_idx in self.all_sections:
+                new_object[section_idx] = 0
+            new_object[section] = size
+            object_object_name = '/'.join([object_name, object_object])
+            self.objects[object_object_name] = new_object
+
 
     def module_replace(self, old_object, new_object):
         """ Replaces an object name with a new one
@@ -186,6 +208,13 @@ class MemapParser(object):
         line - the line to parse a section from
         """
 
+        RE_NAME_GCC = re.compile(
+            r'^\s+(?:\.\w+\.)?((?![0-9])[\.\w]+)')
+
+        test_name = re.match(RE_NAME_GCC, line)
+        if test_name:
+            self.last_name = test_name.group(1)
+
         RE_STD_SECTION_GCC = re.compile(
             r'^\s+.*0x(\w{8,16})\s+0x(\w+)\s(.+)$')
 
@@ -194,13 +223,17 @@ class MemapParser(object):
         if test_address_len_name:
 
             if int(test_address_len_name.group(2), 16) == 0: # size == 0
-                return ["", 0] # no valid entry
+                return ["", 0, ""] # no valid entry
             else:
-                o_name = self.parse_object_name_gcc(\
+                o_name = self.parse_object_name_gcc(
                     test_address_len_name.group(3))
                 o_size = int(test_address_len_name.group(2), 16)
+                if hasattr(self, 'last_name'):
+                    o_obj = self.last_name
+                else:
+                    o_obj = ""
 
-                return [o_name, o_size]
+                return [o_name, o_size, o_obj]
 
         else: # special corner case for *fill* sections
             #  example
@@ -212,13 +245,13 @@ class MemapParser(object):
 
             if test_address_len:
                 if int(test_address_len.group(2), 16) == 0: # size == 0
-                    return ["", 0] # no valid entry
+                    return ["", 0, ""] # no valid entry
                 else:
                     o_name = '[fill]'
                     o_size = int(test_address_len.group(2), 16)
-                    return [o_name, o_size]
+                    return [o_name, o_size, ""]
             else:
-                return ["", 0] # no valid entry
+                return ["", 0, ""] # no valid entry
 
 
     def parse_map_file_gcc(self, file_desc):
@@ -248,12 +281,12 @@ class MemapParser(object):
                 elif change_section != False:
                     current_section = change_section
 
-                [object_name, object_size] = self.parse_section_gcc(line)
+                [object_name, object_size, object_object] = self.parse_section_gcc(line)
 
                 if object_size == 0 or object_name == "":
                     pass
                 else:
-                    self.module_add(object_name, object_size,\
+                    self.module_add(object_name, object_size, object_object,
                                         current_section)
 
     def parse_object_name_armcc(self, line):
@@ -495,18 +528,19 @@ class MemapParser(object):
 
     export_formats = ["json", "csv-ci", "table"]
 
-    def list_dir_obj(self, path):
+    def list_dir_obj(self, path, toolchain):
         """ Searches all objects in BUILD directory and creates list
 
         Positional arguments:
         path - the path to a map file
+        toolchain - containing directory name
         """
 
         path = path.replace('\\', '/')
 
         # check location of map file
-        RE_PATH_MAP_FILE = r'^(.+)\/.+\.map$'
-        test_re = re.match(RE_PATH_MAP_FILE, path)
+        RE_PATH_MAP_FILE = r'^((/?[^/]*)*?)((?!GCC_ARM)[^/]*/)*[^/]+\.map$'.format(toolchain)
+        test_re = re.match(RE_PATH_MAP_FILE, path, flags=re.IGNORECASE)
 
         if test_re:
             search_path = test_re.group(1)
@@ -750,6 +784,14 @@ class MemapParser(object):
                 }
             })
 
+        for i in sorted(self.objects):
+            self.mem_report.append({
+                "object":i,
+                "size":{
+                    k:self.objects[i][k] for k in self.print_sections
+                }
+            })
+
         self.mem_report.append({
             'summary': self.mem_summary
         })
@@ -767,7 +809,7 @@ class MemapParser(object):
             with open(mapfile, 'r') as file_input:
 
                 # Common to all toolchains: first search for objects in BUILD
-                self.list_dir_obj(os.path.abspath(mapfile))
+                self.list_dir_obj(os.path.abspath(mapfile), toolchain)
 
                 if toolchain == "ARM" or toolchain == "ARM_STD" or\
                   toolchain == "ARM_MICRO":
@@ -857,3 +899,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
