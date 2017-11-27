@@ -1,0 +1,102 @@
+version: 2
+jobs:
+  # mbed events testing
+  events:
+    machine: true
+
+    environment:
+      - EVENTS: events
+            
+    steps:
+      - checkout
+
+      # Install dependencies
+      - run: sudo add-apt-repository -y ppa:team-gcc-arm-embedded/ppa
+      - run: sudo apt-get update -qq
+      - run: sudo apt-get install -qq gcc-arm-embedded
+      - run: pip install --user -r requirements.txt
+
+      # Print versions
+      - run: arm-none-eabi-gcc --version
+      - run: gcc --version
+      - run: python --version
+
+      # Check that example compiles
+      - run: |
+          sed -n '/``` cpp/,/```/{/```$/Q;/```/d;p;}' $EVENTS/README.md > main.cpp
+          python tools/make.py -t GCC_ARM -m K64F --source=. --build=BUILD/K64F/GCC_ARM -j0
+
+      # Run local equeue tests
+      - run: make -C $EVENTS/equeue test
+
+  # mbed littlefs testing
+  littlefs:
+    machine: true
+
+    environment:
+      - LITTLEFS: features/filesystem/littlefs
+      - LITTLEFS_FUSE: $LITTLEFS/littlefs_fuse
+            
+    steps:
+      - checkout
+
+      # Install dependencies
+      - run: sudo add-apt-repository -y ppa:team-gcc-arm-embedded/ppa
+      - run: sudo apt-get update -qq
+      - run: sudo apt-get install -qq gcc-arm-embedded
+      - run: sudo apt-get install -qq fuse libfuse-dev
+      - run: pip install --user -r requirements.txt
+      - run: git clone https://github.com/armmbed/spiflash-driver.git
+
+      # Print versions
+      - run: arm-none-eabi-gcc --version
+      - run: gcc --version
+      - run: python --version
+      - run: fusermount --version
+
+      # Setup and patch littlefs-fuse
+      - run: |
+          git clone https://github.com/geky/littlefs-fuse $LITTLEFS_FUSE
+          echo '*' > $LITTLEFS_FUSE/.mbedignore
+          rm -rf $LITTLEFS_FUSE/littlefs/*
+          cp -r $(git ls-tree --name-only HEAD $LITTLEFS/littlefs/) $LITTLEFS_FUSE/littlefs
+      # Create file-backed disk
+      - run: |
+          mkdir MOUNT
+          sudo chmod a+rw /dev/loop0
+          dd if=/dev/zero bs=512 count=2048 of=DISK
+          losetup /dev/loop0 DISK
+
+      # Check that example compiles
+      - run: |
+          sed -n '/``` c++/,/```/{/```/d;p;}' $LITTLEFS/README.md > main.cpp
+          python tools/make.py -t GCC_ARM -m K82F --source=. --build=BUILD/K82F/GCC_ARM -j0
+
+      # Run local littlefs tests
+      - run: CFLAGS="-Wno-format" make -C$LITTLEFS/littlefs test QUIET=1
+
+      # Run local littlefs tests with set of variations
+      - run: CFLAGS="-Wno-format -DLFS_READ_SIZE=64 -DLFS_PROG_SIZE=64" make -C$LITTLEFS/littlefs test QUIET=1
+      - run: CFLAGS="-Wno-format -DLFS_READ_SIZE=1 -DLFS_PROG_SIZE=1" make -C$LITTLEFS/littlefs test QUIET=1
+      - run: CFLAGS="-Wno-format -DLFS_READ_SIZE=512 -DLFS_PROG_SIZE=512" make -C$LITTLEFS/littlefs test QUIET=1
+      - run: CFLAGS="-Wno-format -DLFS_BLOCK_COUNT=1023" make -C$LITTLEFS/littlefs test QUIET=1
+      - run: CFLAGS="-Wno-format -DLFS_LOOKAHEAD=2048" make -C$LITTLEFS/littlefs test QUIET=1
+
+      # Self-hosting littlefs fuzz test with littlefs-fuse
+      - run: make -C$LITTLEFS_FUSE
+      - run: $LITTLEFS_FUSE/lfs --format /dev/loop0
+      - run: $LITTLEFS_FUSE/lfs /dev/loop0 MOUNT
+      - run: |
+          ls MOUNT
+          mkdir MOUNT/littlefs
+          cp -r $(git ls-tree --name-only HEAD $LITTLEFS/littlefs/) MOUNT/littlefs
+          cd MOUNT/littlefs
+          ls
+          CFLAGS="-Wno-format" make -B test_dirs QUIET=1
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - events
+      - littlefs
