@@ -26,8 +26,6 @@
 
 // --------------------------------------------------------- Definitions ----------------------------------------------------------
 
-#define TRACE_GROUP                     "sotp"
-
 #define PR_ERR printf
 #define PR_INFO printf
 #define PR_DEBUG printf
@@ -123,17 +121,6 @@ static uint32_t crc32(uint32_t init_crc, uint32_t data_len, uint8_t *data_buf)
     }
     return crc;
 }
-
-#if 0
-static SOTP& SOTP::get_instance()
-{
-    // Use this implementation of singleton (Meyer's) rather than the one that allocates
-    // the instance on the heap, as it ensures destruction at program end (preventing warnings
-    // from memory checking tools such as valgrind).
-    static SOTP instance;
-    return instance;
-}
-#endif
 
 SOTP::SOTP()
 {

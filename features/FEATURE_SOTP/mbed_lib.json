@@ -9,7 +9,7 @@
     "num_types": {
         "macro_name": "SOTP_MAX_TYPES",
         "value": 16,
-        "help": "Number of SOTP types"
+        "help": "Number of different SOTP keys allowed"
     },
     "num_areas": {
         "macro_name": "SOTP_INT_FLASH_NUM_AREAS",
@@ -24,7 +24,7 @@
     "area_1_size": {
         "macro_name": "SOTP_INT_FLASH_AREA_1_SIZE",
         "value": "0x1000",
-        "help": "Size of SOTP area 1"
+        "help": "Size of SOTP area 1 (bytes)"
     },
     "area_2_address": {
         "macro_name": "SOTP_INT_FLASH_AREA_2_ADDRESS",
@@ -34,7 +34,7 @@
     "area_2_size": {
         "macro_name": "SOTP_INT_FLASH_AREA_2_SIZE",
         "value": "0x1000",
-        "help": "Size of SOTP area 2"
+        "help": "Size of SOTP area 2 (bytes)"
     }
   }
 }

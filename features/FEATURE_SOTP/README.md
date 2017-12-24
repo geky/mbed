@@ -45,6 +45,13 @@ Minimal applications (such as boot loaders), requiring a read only access to the
 the SOTP_PROBE_ONLY compilation flag set. This will aggressively minimize code size by providing the
 sotp_probe API only.
 
+### Using SOTP
+SOTP is a singleton class, meaning that the application can have only a single instance of it.
+To instanciate SOTP, one needs to call its get_instance member function as following:
+    SOTP &sotp = SOTP::get_instance();
+After the SOTP instantiation, one can call the init API, but it is not necessary, as all
+SOTP APIs (get, set et al.) perform a "lazy initialization".
+
 ### Testing SOTP
 Run the SOTP functionality test with the mbed command as following:
 mbed test -n features-feature_sotp-tests-sotp-functionality
