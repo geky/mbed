@@ -35,6 +35,8 @@ using namespace utest::v1;
 #undef MIN
 #define MIN(a,b)            ((a) < (b) ? (a) : (b))
 
+#define MAX_TYPES 20
+
 #define SOTP_MAX_NAME_LENGTH (1024)
 #define SOTP_SIZE (64 *1024)
 #define MASTER_RECORD_SIZE (8 + 4)
@@ -51,9 +53,9 @@ static uint32_t sotp_testing_buf_get[SOTP_MAX_NAME_LENGTH] = {0};
 
 #define MAX_NUMBER_OF_THREADS 6
 
-static uint32_t *thr_test_buffs[SOTP_MAX_TYPES][THR_TEST_NUM_BUFFS];
-static uint16_t thr_test_sizes[SOTP_MAX_TYPES][THR_TEST_NUM_BUFFS];
-static int thr_test_inds[SOTP_MAX_TYPES];
+static uint32_t *thr_test_buffs[MAX_TYPES][THR_TEST_NUM_BUFFS];
+static uint16_t thr_test_sizes[MAX_TYPES][THR_TEST_NUM_BUFFS];
+static int thr_test_inds[MAX_TYPES];
 static int thr_test_num_threads;
 static uint8_t thr_test_last_type;
 static int thr_test_last_ind;
@@ -154,8 +156,11 @@ void sotp_basic_functionality_test()
 
     sotp_result_e result;
 
-    result = sotp.probe(SOTP_MAX_TYPES, 0, NULL, &actual_len_bytes);
+    result = sotp.probe(MAX_TYPES, 0, NULL, &actual_len_bytes);
     TEST_ASSERT_EQUAL(SOTP_NOT_FOUND, result);
+
+    sotp.set_num_types(MAX_TYPES);
+    TEST_ASSERT_EQUAL(MAX_TYPES, sotp.get_num_types());
 
     result = sotp.reset();
     TEST_ASSERT_EQUAL(SOTP_SUCCESS, result);
@@ -425,14 +430,14 @@ void sotp_chunk_iterations_test()
 {
     sotp_int_flash_init();
 
-    uint32_t *data_array[SOTP_MAX_TYPES];
-    uint32_t data_size_array[SOTP_MAX_TYPES] = {0};
+    uint32_t *data_array[MAX_TYPES];
+    uint32_t data_size_array[MAX_TYPES] = {0};
     char *random_str;
     uint16_t actual_len_bytes = 0;
     sotp_result_e result = SOTP_SUCCESS;
     SOTP &sotp = SOTP::get_instance();
 
-    for (uint32_t i = 0; i <SOTP_MAX_TYPES; i++)
+    for (uint32_t i = 0; i <MAX_TYPES; i++)
     {
         data_array[i] = (uint32_t *) malloc(MAX_DATA_SIZE);
     }
@@ -442,7 +447,7 @@ void sotp_chunk_iterations_test()
     TEST_ASSERT_EQUAL(SOTP_SUCCESS, result);
     for (uint32_t iter_num_index = 0; iter_num_index < NUM_OF_ITERATIONS_CHUNK_TEST; iter_num_index++)
     {
-        for (uint32_t i = 0; i <SOTP_MAX_TYPES; i++)
+        for (uint32_t i = 0; i <MAX_TYPES; i++)
         {
             for (uint32_t j = 0; j < MAX_DATA_SIZE/sizeof(uint32_t); j++)
             {
@@ -453,7 +458,7 @@ void sotp_chunk_iterations_test()
         for (uint32_t i = 0; i < 50; i++)
         {
             uint32_t data_size = 1 + (rand() % MAX_DATA_SIZE);
-            uint16_t type = rand() % SOTP_MAX_TYPES;
+            uint16_t type = rand() % MAX_TYPES;
             gen_random(random_str , data_size);
             random_str[data_size] = '\0';
             strncpy((char*)data_array[type], random_str, data_size);
@@ -462,7 +467,7 @@ void sotp_chunk_iterations_test()
             data_size_array[type] = data_size;
         }
 
-        for (uint32_t i = 0; i < SOTP_MAX_TYPES; i++)
+        for (uint32_t i = 0; i < MAX_TYPES; i++)
         {
             // check if we random this type
             if (data_size_array[i] != 0)
@@ -475,7 +480,7 @@ void sotp_chunk_iterations_test()
         }
 
     }
-    for (uint32_t i = 0; i < SOTP_MAX_TYPES; i++)
+    for (uint32_t i = 0; i < MAX_TYPES; i++)
     {
         free(data_array[i]);
     }
@@ -499,12 +504,12 @@ void sotp_garbage_collection_test()
     result = sotp.force_garbage_collection();
     TEST_ASSERT_EQUAL(SOTP_SUCCESS, result);
 #endif
-    uint32_t *data_array[SOTP_MAX_TYPES];
-    uint32_t data_size_array[SOTP_MAX_TYPES] = {0};
+    uint32_t *data_array[MAX_TYPES];
+    uint32_t data_size_array[MAX_TYPES] = {0};
     char *random_str;
     uint16_t actual_len_bytes = 0;
 
-    for (uint32_t i = 0; i < SOTP_MAX_TYPES; i++)
+    for (uint32_t i = 0; i < MAX_TYPES; i++)
     {
         data_array[i] = (uint32_t *) malloc(MAX_DATA_SIZE);
         for (uint32_t j = 0; j < MAX_DATA_SIZE/sizeof(uint32_t); j++)
@@ -517,7 +522,7 @@ void sotp_garbage_collection_test()
     while (sotp_curr_size < (1.5 * SOTP_SIZE))
     {
         uint32_t data_size = 1 + (rand() % MAX_DATA_SIZE);
-        uint16_t type = rand() % SOTP_MAX_TYPES;
+        uint16_t type = rand() % MAX_TYPES;
         gen_random(random_str , data_size);
         random_str[data_size] = '\0';
         strncpy((char*)data_array[type], random_str, data_size);
@@ -531,7 +536,7 @@ void sotp_garbage_collection_test()
         sotp_curr_size += (8 + data_size_array[type]);
     }
 
-    for (uint32_t i = 0; i <SOTP_MAX_TYPES; i++)
+    for (uint32_t i = 0; i <MAX_TYPES; i++)
     {
         if (data_size_array[i] != 0)
         {
@@ -547,7 +552,7 @@ void sotp_garbage_collection_test()
     TEST_ASSERT_EQUAL(SOTP_SUCCESS, result);
 #endif
 
-    for (uint32_t i = 0; i <SOTP_MAX_TYPES; i++)
+    for (uint32_t i = 0; i <MAX_TYPES; i++)
     {
         // check if we random this type
         if (data_size_array[i] != 0)
@@ -562,7 +567,7 @@ void sotp_garbage_collection_test()
     result = sotp.init();
     TEST_ASSERT_EQUAL(SOTP_SUCCESS, result);
 
-    for (uint32_t i = 0; i < SOTP_MAX_TYPES; i++)
+    for (uint32_t i = 0; i < MAX_TYPES; i++)
     {
         if (data_size_array[i] != 0)
         {
@@ -573,7 +578,7 @@ void sotp_garbage_collection_test()
         }
     }
 
-    for (uint32_t i = 0; i < SOTP_MAX_TYPES; i++)
+    for (uint32_t i = 0; i < MAX_TYPES; i++)
     {
         free(data_array[i]);
     }
@@ -635,7 +640,7 @@ void thread_test_worker(void *arg)
     SOTP &sotp = SOTP::get_instance();
 
     for (;;) {
-        type = rand() % SOTP_MAX_TYPES;
+        type = rand() % MAX_TYPES;
         is_set = rand() % 4;
 
         if (is_set) {
@@ -682,10 +687,10 @@ static void run_thread_test(int num_threads)
     }
 
     max_size = MIN(area_data[0].size, area_data[1].size);
-    max_size = MIN(max_size / SOTP_MAX_TYPES - 16, max_size);
+    max_size = MIN(max_size / MAX_TYPES - 16, max_size);
     max_size = MIN(max_size, MAX_DATA_SIZE);
 
-    for (type = 0; type < SOTP_MAX_TYPES; type++) {
+    for (type = 0; type < MAX_TYPES; type++) {
         for (i = 0; i < THR_TEST_NUM_BUFFS; i++) {
             size = 1 + rand() % max_size;
             thr_test_sizes[type][i] = size;
@@ -728,16 +733,16 @@ static void run_thread_test(int num_threads)
     sotp.deinit();
     sotp_int_flash_init();
 
-    thread_test_check_type(0, SOTP_MAX_TYPES-1, 1);
+    thread_test_check_type(0, MAX_TYPES-1, 1);
 
     sotp.init();
 
-    for (type = 0; type < SOTP_MAX_TYPES; type++) {
+    for (type = 0; type < MAX_TYPES; type++) {
         thread_test_check_type(0, type, 0);
         TEST_ASSERT_EQUAL(SOTP_SUCCESS, ret);
     }
 
-    for (type = 0; type < SOTP_MAX_TYPES; type++) {
+    for (type = 0; type < MAX_TYPES; type++) {
         for (i = 0; i < THR_TEST_NUM_BUFFS; i++) {
             free(thr_test_buffs[type][i]);
         }

@@ -70,6 +70,20 @@ public:
     virtual ~SOTP();
 
 /**
+ * @brief Returns number of types.
+ *
+ * @returns Number of types.
+ */
+    uint8_t get_num_types();
+
+/**
+ * @brief Set number of types.
+ *
+ * @returns None.
+ */
+    void set_num_types(uint8_t in_num_types);
+
+/**
  * @brief Returns one item of data programmed on Flash, given type.
  *
  * @param [in] type
@@ -235,11 +249,11 @@ private:
     int init_done;
     uint32_t init_attempts;
     uint8_t active_area;
+    uint8_t num_types;
     uint16_t active_area_version;
     uint32_t free_space_offset;
-    uint32_t *offset_by_type;
     sotp_shared_lock_t write_lock;
-
+    uint32_t *offset_by_type;
     sotp_area_data_t *flash_area_params;
 
     // Private constructor, as class is a singleton

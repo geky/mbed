@@ -18,6 +18,7 @@
 
 #include "sotp.h"
 
+#include "mbed_assert.h"
 #include "sotp_os_wrapper.h"
 #include "sotp_int_flash_wrapper.h"
 #include <string.h>
@@ -122,16 +123,12 @@ static uint32_t crc32(uint32_t init_crc, uint32_t data_len, uint8_t *data_buf)
     return crc;
 }
 
-SOTP::SOTP()
+SOTP::SOTP() : init_done(0), init_attempts(0), active_area(0), num_types(SOTP_MAX_TYPES),
+               active_area_version(0), free_space_offset(0), write_lock(0), offset_by_type(0)
 {
-    init_done = 0;
-    init_attempts = 0;
-    active_area = 0;
-    active_area_version = 0;
-    free_space_offset = 0;
-    write_lock = 0;
-
-    offset_by_type = new uint32_t[SOTP_MAX_TYPES];
+    // As SOTP is a singletone, one can't initialize num_types to anything other than default
+    // in the constructor. The set_num_types method can change it later on, and the offset_by_type
+    // array, relying on this number is allocated in init.
     flash_area_params = new sotp_area_data_t[SOTP_INT_FLASH_NUM_AREAS];
 }
 
@@ -141,10 +138,22 @@ SOTP::~SOTP()
         deinit();
     }
 
-    delete[] offset_by_type;
     delete[] flash_area_params;
 }
 
+uint8_t SOTP::get_num_types()
+{
+    return num_types;
+}
+
+void SOTP::set_num_types(uint8_t in_num_types)
+{
+    MBED_ASSERT(in_num_types < SOTP_MASTER_RECORD_TYPE);
+    num_types = in_num_types;
+    // User is allowed to change number of types. As this affects init, need to deinitialize now.
+    // Don't call init right away - it is lazily called by get/set functions if needed.
+    deinit();
+}
 
 // Flash access helper functions, using area and offset notations
 
@@ -249,7 +258,7 @@ sotp_result_e SOTP::read_record(uint8_t area, uint32_t offset, uint16_t buf_len_
     *type = header.type;
     *flags = header.flags;
 
-    if ((*type >= SOTP_MAX_TYPES) && (*type != SOTP_MASTER_RECORD_TYPE)) {
+    if ((*type >= num_types) && (*type != SOTP_MASTER_RECORD_TYPE)) {
         *valid = 0;
         return SOTP_SUCCESS;
     }
@@ -451,7 +460,7 @@ sotp_result_e SOTP::garbage_collection(uint8_t type, uint16_t buf_len_bytes, con
 
     // Now iterate on all types, and copy the ones who have valid offsets (meaning that they exist)
     // to the other area.
-    for (type = 0; type < SOTP_MAX_TYPES; type++) {
+    for (type = 0; type < num_types; type++) {
         curr_offset = offset_by_type[type];
         curr_area = (uint8_t) (curr_offset >> (sizeof(curr_offset)*8 - 1));
         curr_offset &= ~(1 << (sizeof(curr_offset)*8 - 1));
@@ -510,7 +519,7 @@ sotp_result_e SOTP::do_get(uint8_t type, uint16_t buf_len_bytes, uint32_t *buf, 
         }
     }
 
-    if (type >= SOTP_MAX_TYPES) {
+    if (type >= num_types) {
         return SOTP_BAD_VALUE;
     }
 
@@ -584,7 +593,7 @@ sotp_result_e SOTP::do_set(uint8_t type, uint16_t buf_len_bytes, const uint32_t 
         }
     }
 
-    if (type >= SOTP_MAX_TYPES) {
+    if (type >= num_types) {
         return SOTP_BAD_VALUE;
     }
 
@@ -722,13 +731,19 @@ sotp_result_e SOTP::init()
         return SOTP_SUCCESS;
     }
 
+    offset_by_type = new uint32_t[num_types];
+    if (!offset_by_type) {
+        ret = SOTP_OS_ERROR;
+        goto init_end;
+    }
+
     if (!(write_lock = sotp_sh_lock_create())) {
         PR_ERR("sotp_init: sotp_sh_lock_create failed\n");
         ret = SOTP_OS_ERROR;
         goto init_end;
     }
 
-    for (type = 0; type < SOTP_MAX_TYPES; type++) {
+    for (type = 0; type < num_types; type++) {
         offset_by_type[type] = 0;
     }
 
@@ -858,6 +873,7 @@ sotp_result_e SOTP::deinit()
     if (init_done) {
         sotp_sh_lock_destroy(write_lock);
         sotp_int_flash_deinit();
+        delete[] offset_by_type;
     }
 
     init_attempts = 0;

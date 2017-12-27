@@ -49,6 +49,8 @@ sotp_probe API only.
 SOTP is a singleton class, meaning that the application can have only a single instance of it.
 To instanciate SOTP, one needs to call its get_instance member function as following:
     SOTP &sotp = SOTP::get_instance();
+By default, SOTP uses the SOTP_MAX_TYPE definition as its number of types. One can call the set_num_types
+API (preferably before first usage) to change it.
 After the SOTP instantiation, one can call the init API, but it is not necessary, as all
 SOTP APIs (get, set et al.) perform a "lazy initialization".
 
