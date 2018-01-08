@@ -18,7 +18,7 @@
     },
     "area_1_address": {
         "macro_name": "SOTP_INT_FLASH_AREA_1_ADDRESS",
-        "value": "0xfe000",
+        "value": "0x3e000",
         "help": "Address of SOTP area 1"
     },
     "area_1_size": {
@@ -28,7 +28,7 @@
     },
     "area_2_address": {
         "macro_name": "SOTP_INT_FLASH_AREA_2_ADDRESS",
-        "value": "0xff000",
+        "value": "0x3f000",
         "help": "Address of SOTP area 2"
     },
     "area_2_size": {
