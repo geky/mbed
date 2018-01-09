@@ -115,11 +115,23 @@ public:
      */
     virtual bd_size_t size() const;
 
-    /** Get the number of SOTP writes (cleared on read)
+    /** Get the number of reads (cleared on read)
      *
-     *  @return         number of SOTP writes
+     *  @return         number of reads
      */
-    virtual bd_size_t get_num_sotp_writes();
+    virtual bd_size_t get_num_reads();
+
+    /** Get the number of writes (cleared on read)
+     *
+     *  @return         number of writes
+     */
+    virtual bd_size_t get_num_writes();
+
+    /** Get the number of erases (cleared on read)
+     *
+     *  @return         number of erases
+     */
+    virtual bd_size_t get_num_erases();
 
 private:
     static int _num_instances;
@@ -128,7 +140,9 @@ private:
     bd_size_t _erase_size;
     int _init_done;
     // statistics
-    uint32_t _num_sotp_writes;
+    bd_size_t _num_reads, _prev_num_reads;
+    bd_size_t _num_writes, _prev_num_writes;
+    bd_size_t _num_erases, _prev_num_erases;
 
     // All functions dealing with encryption and authentication should be standalone in order
     // to allow them to be part of the trusted environment in the future.

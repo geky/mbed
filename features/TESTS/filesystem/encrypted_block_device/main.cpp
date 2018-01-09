@@ -24,6 +24,7 @@
 #include "FATFileSystem.h"
 #include "LittleFileSystem.h"
 #include "SPIFBlockDevice.h"
+#include "SlicingBlockDevice.h"
 #include "File.h"
 #include "Timer.h"
 #include "sotp.h"
@@ -147,6 +148,7 @@ void test_fs_read_write(BlockDevice *bd)
     uint8_t *buf = new uint8_t[file_size];
 
     int elapsed;
+    EncryptedBlockDevice *enc_bd = (EncryptedBlockDevice *) bd;
 
     timer.start();
 
@@ -182,6 +184,10 @@ void test_fs_read_write(BlockDevice *bd)
 
         elapsed = timer.read_ms();
         printf("Elapsed time for file write (%d bytes) is %d millseconds\n", file_size, elapsed);
+        printf("#reads %lld, #writes %lld, #erases %lld\n", enc_bd->get_num_reads(),
+                enc_bd->get_num_writes(), enc_bd->get_num_erases());
+        printf("Number of SOTP writes: %lld, AVG write time %lld usec.\n",
+                sotp.get_num_writes(), sotp.get_avg_write_time_us());
 
         timer.reset();
 
@@ -194,6 +200,8 @@ void test_fs_read_write(BlockDevice *bd)
 
         elapsed = timer.read_ms();
         printf("Elapsed time for file read (%d bytes) is %d millseconds\n", file_size, elapsed);
+        printf("#reads %lld, #writes %lld, #erases %lld\n", enc_bd->get_num_reads(),
+                enc_bd->get_num_writes(), enc_bd->get_num_erases());
 
         srand(1);
         for (bd_size_t j = 0; j < file_size; j++) {
@@ -218,19 +226,19 @@ void test_fs_read_write_fat()
     EncryptedBlockDevice enc_bd(&bd);
     printf("\nStarting FAT over encrypted BD test\n");
     test_fs_read_write <FATFileSystem> (&enc_bd);
-    printf("\nStarting FAT over non-encrypted BD test\n");
-    test_fs_read_write <FATFileSystem> (&bd);
+    //printf("\nStarting FAT over non-encrypted BD test\n");
+    //test_fs_read_write <FATFileSystem> (&bd);
 }
 
 void test_fs_read_write_littlefs()
 {
-    //HeapBlockDevice bd(128*4096, 4, 1, 4096);
     SPIFBlockDevice bd(PTE2, PTE4, PTE1, PTE5);
-    EncryptedBlockDevice enc_bd(&bd);
+    SlicingBlockDevice slice(&bd, 0*4096, 128*4096);
+    EncryptedBlockDevice enc_bd(&slice);
     printf("\nStarting LittleFS over encrypted BD test\n");
     test_fs_read_write <LittleFileSystem> (&enc_bd);
-    printf("\nStarting LittleFS over non-encrypted BD test\n");
-    test_fs_read_write <LittleFileSystem> (&bd);
+    //printf("\nStarting LittleFS over non-encrypted BD test\n");
+    //test_fs_read_write <LittleFileSystem> (&slice);
 }
 
 // Test setup

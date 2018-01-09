@@ -245,6 +245,10 @@ public:
  */
     sotp_result_e probe(uint8_t type, uint16_t buf_len_bytes, uint32_t *buf, uint16_t *actual_len_bytes);
 
+    uint64_t get_num_writes();
+
+    uint64_t get_avg_write_time_us() const;
+
 private:
     int init_done;
     uint32_t init_attempts;
@@ -255,6 +259,7 @@ private:
     sotp_shared_lock_t write_lock;
     uint32_t *offset_by_type;
     sotp_area_data_t *flash_area_params;
+    uint64_t num_writes, prev_num_writes, avg_write_time_us;
 
     // Private constructor, as class is a singleton
     SOTP();

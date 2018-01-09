@@ -24,6 +24,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stddef.h>
+#include "mbed.h"
+#include "Timer.h"
 
 // --------------------------------------------------------- Definitions ----------------------------------------------------------
 
@@ -124,7 +126,8 @@ static uint32_t crc32(uint32_t init_crc, uint32_t data_len, uint8_t *data_buf)
 }
 
 SOTP::SOTP() : init_done(0), init_attempts(0), active_area(0), num_types(SOTP_MAX_TYPES),
-               active_area_version(0), free_space_offset(0), write_lock(0), offset_by_type(0)
+               active_area_version(0), free_space_offset(0), write_lock(0), offset_by_type(0),
+               num_writes(0), prev_num_writes(0), avg_write_time_us(0)
 {
     // As SOTP is a singletone, one can't initialize num_types to anything other than default
     // in the constructor. The set_num_types method can change it later on, and the offset_by_type
@@ -688,7 +691,14 @@ sotp_result_e SOTP::do_set(uint8_t type, uint16_t buf_len_bytes, const uint32_t 
 
 sotp_result_e SOTP::set(uint8_t type, uint16_t buf_len_bytes, const uint32_t *buf)
 {
-    return do_set(type, buf_len_bytes, buf, 0);
+    Timer timer;
+    timer.start();
+
+    sotp_result_e ret = do_set(type, buf_len_bytes, buf, 0);
+    avg_write_time_us += timer.read_us();
+    num_writes++;
+
+    return ret;
 }
 
 #ifdef SOTP_TESTING
@@ -1033,4 +1043,17 @@ sotp_result_e SOTP::probe(uint8_t type, uint16_t buf_len_bytes, uint32_t *buf, u
     }
 
     return save_ret;
+}
+
+
+uint64_t SOTP::get_num_writes()
+{
+    uint64_t num = num_writes - prev_num_writes;
+    prev_num_writes = num_writes;
+    return num;
+}
+
+uint64_t SOTP::get_avg_write_time_us() const
+{
+    return (avg_write_time_us / num_writes);
 }

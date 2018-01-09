@@ -133,7 +133,8 @@ int EncryptedBlockDevice::_num_instances = 0;
 
 EncryptedBlockDevice::EncryptedBlockDevice(BlockDevice *bd)
     : _bd(bd), _sotp_start_type(0), _erase_size(0),
-      _init_done(0), _num_sotp_writes(0)
+      _init_done(0), _num_reads(0), _prev_num_reads(0),
+      _num_writes(0), _prev_num_writes(0), _num_erases(0), _prev_num_erases(0)
 {
     _num_instances++;
     // Usage of SOTP doesn't allow us to have more than one instance of this class at a time, as
@@ -186,7 +187,6 @@ int EncryptedBlockDevice::sign_erase_unit(uint16_t erase_unit_num, uint16_t num_
     if (ret != SOTP_SUCCESS) {
         return BD_ERROR_ENC_BD_SOTP_ERROR;
     }
-    _num_sotp_writes++;
     return 0;
 }
 
@@ -332,6 +332,8 @@ int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr, bd_size_t size)
     MBED_ASSERT(is_valid_read(addr, size));
     MBED_ASSERT(_init_done);
 
+    _num_reads++;
+
     uint8_t *buf = (uint8_t *) buffer;
     bd_size_t prev_erase_unit_num = (bd_size_t) -1;
     SOTP &sotp = SOTP::get_instance();
@@ -403,6 +405,8 @@ int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr, bd_size_t 
     MBED_ASSERT(is_valid_program(addr, size));
     MBED_ASSERT(_init_done);
 
+    _num_writes++;
+
     mbedtls_aes_context enc_aes_ctx;
     mbedtls_aes_init(&enc_aes_ctx);
     mbedtls_aes_setkey_enc(&enc_aes_ctx, encrypt_key, ENC_KEY_SIZE_BITS);
@@ -464,6 +468,8 @@ int EncryptedBlockDevice::erase(bd_addr_t addr, bd_size_t size)
     MBED_ASSERT(is_valid_erase(addr, size));
     MBED_ASSERT(_init_done);
 
+    _num_erases++;
+
     SOTP &sotp = SOTP::get_instance();
 
     while (size) {
@@ -522,9 +528,24 @@ bd_size_t EncryptedBlockDevice::size() const
     return _bd->size();
 }
 
-bd_size_t EncryptedBlockDevice::get_num_sotp_writes()
+bd_size_t EncryptedBlockDevice::get_num_reads()
 {
-    bd_size_t num = _num_sotp_writes;
-    _num_sotp_writes = 0;
+    bd_size_t num = _num_reads - _prev_num_reads;
+    _prev_num_reads = _num_reads;
     return num;
 }
+
+bd_size_t EncryptedBlockDevice::get_num_writes()
+{
+    bd_size_t num = _num_writes - _prev_num_writes;
+    _prev_num_writes = _num_writes;
+    return num;
+}
+
+bd_size_t EncryptedBlockDevice::get_num_erases()
+{
+    bd_size_t num = _num_erases - _prev_num_erases;
+    _prev_num_erases = _num_erases;
+    return num;
+}
+
