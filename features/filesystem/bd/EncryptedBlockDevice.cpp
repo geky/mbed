@@ -298,7 +298,7 @@ int EncryptedBlockDevice::init()
     if (_init_done) {
         return BD_ERROR_OK;
     }
-    _erase_size = _bd->get_erase_size();
+    _erase_size = 512; //_bd->get_erase_size();
 
     SOTP &sotp = SOTP::get_instance();
 
@@ -328,9 +328,14 @@ int EncryptedBlockDevice::deinit()
     return _bd->deinit();
 }
 
-int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr, bd_size_t size)
+int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr_, bd_size_t size_)
 {
     perf_enter(PERF_ENC);
+
+    while (size_ > 0) {
+        bd_addr_t addr = addr_;
+        bd_size_t size = _erase_size;
+        //printf("read %llx:%lld (%08x)\n", addr_, size_, ((uint32_t*)buffer)[0]);
 
     MBED_ASSERT(is_valid_read(addr, size));
     MBED_ASSERT(_init_done);
@@ -403,13 +408,24 @@ int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr, bd_size_t size)
         auth_addr += auth_chunk_size;
     }
 
+        addr_ += _erase_size;
+        size_ -= _erase_size;
+        buffer = (uint8_t*)buffer + _erase_size;
+    }
+
     perf_exit(PERF_ENC);
     return BD_ERROR_OK;
 }
 
-int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr, bd_size_t size)
+int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr_, bd_size_t size_)
 {
     perf_enter(PERF_ENC);
+
+    while (size_ > 0) {
+        bd_addr_t addr = addr_;
+        bd_size_t size = _erase_size;
+        //printf("prog %llx:%lld (%08x)\n", addr_, size_, ((uint32_t*)buffer)[0]);
+
     MBED_ASSERT(is_valid_program(addr, size));
     MBED_ASSERT(_init_done);
 
@@ -471,16 +487,28 @@ int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr, bd_size_t 
         }
     }
 
+        addr_ += _erase_size;
+        size_ -= _erase_size;
+        buffer = (uint8_t*)buffer + _erase_size;
+    }
+
     perf_exit(PERF_ENC);
     return BD_ERROR_OK;
 }
 
-int EncryptedBlockDevice::erase(bd_addr_t addr, bd_size_t size)
+int EncryptedBlockDevice::erase(bd_addr_t addr_, bd_size_t size_)
 {
     perf_enter(PERF_ENC);
-    MBED_ASSERT(is_valid_erase(addr, size));
-    MBED_ASSERT(_init_done);
+    int ret = _bd->erase(addr_, size_);
+    if (ret) {
+        perf_exit(PERF_ENC);
+        return ret;
+    }
 
+
+    while (size_ > 0) {
+        bd_addr_t addr = addr_;
+        bd_size_t size = _erase_size;
     _num_erases++;
 
     SOTP &sotp = SOTP::get_instance();
@@ -512,13 +540,17 @@ int EncryptedBlockDevice::erase(bd_addr_t addr, bd_size_t size)
         }
 
         bd_size_t chunk_size = MIN(_erase_size, size);
-        ret = _bd->erase(addr, chunk_size);
-        if (ret) {
-            perf_exit(PERF_ENC);
-            return ret;
-        }
+//        ret = _bd->erase(addr, chunk_size);
+//        if (ret) {
+//            perf_exit(PERF_ENC);
+//            return ret;
+//        }
         addr += chunk_size;
         size -= chunk_size;
+    }
+
+        addr_ += _erase_size;
+        size_ -= _erase_size;
     }
 
     perf_exit(PERF_ENC);

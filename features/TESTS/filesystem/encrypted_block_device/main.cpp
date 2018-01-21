@@ -253,7 +253,8 @@ void test_fs_read_write_littlefs_noenc()
 void test_fs_read_write_littlefs()
 {
     SPIFBlockDevice bd(PTE2, PTE4, PTE1, PTE5);
-    SlicingBlockDevice slice(&bd, 0*4096, 128*4096);
+    //SlicingBlockDevice slice(&bd, 0*4096, 128*4096);
+    SlicingBlockDevice slice(&bd, 0*4096, 16*4096);
     EncryptedBlockDevice enc_bd(&slice);
     printf("\nStarting LittleFS over encrypted BD test\n");
     test_fs_read_write <LittleFileSystem> (&enc_bd);
@@ -270,7 +271,7 @@ utest::v1::status_t test_setup(const size_t number_of_cases) {
 Case cases[] = {
 //        Case("Testing read/write directly over encrypted BD", test_direct_read_write),
 //        Case("Testing read/write over FAT on top of encrypted BD", test_fs_read_write_fat),
-        Case("Testing read/write over LittleFS on top of non-encrypted BD", test_fs_read_write_littlefs_noenc),
+//        Case("Testing read/write over LittleFS on top of non-encrypted BD", test_fs_read_write_littlefs_noenc),
         Case("Testing read/write over LittleFS on top of encrypted BD", test_fs_read_write_littlefs)
 };
 
