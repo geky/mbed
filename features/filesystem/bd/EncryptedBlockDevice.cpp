@@ -20,6 +20,7 @@
 #include "aes.h"
 #include "cmac.h"
 #include "sotp.h"
+#include "perf.h"
 
 // TODO: Currently use a constant key until a key generator is implemented
 const unsigned char *default_key = (const unsigned char *) "Fear is the key.";
@@ -329,6 +330,8 @@ int EncryptedBlockDevice::deinit()
 
 int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr, bd_size_t size)
 {
+    perf_enter(PERF_ENC);
+
     MBED_ASSERT(is_valid_read(addr, size));
     MBED_ASSERT(_init_done);
 
@@ -367,6 +370,7 @@ int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr, bd_size_t size)
                 auth_size = _erase_size;
             }
             else {
+                perf_exit(PERF_ENC);
                 return BD_ERROR_ENC_BD_SOTP_ERROR;
             }
             auth_addr = align_down(addr, _erase_size);
@@ -377,6 +381,7 @@ int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr, bd_size_t size)
         bd_size_t auth_chunk_size = MIN(auth_size, ENC_BD_READ_BUF_SIZE);
         int ret = _bd->read(read_buf, auth_addr, align_up(auth_chunk_size, get_read_size()));
         if (ret) {
+            perf_exit(PERF_ENC);
             return ret;
         }
 
@@ -385,6 +390,7 @@ int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr, bd_size_t size)
             ret = authenticate_chunk(&auth_ctx, read_buf, auth_chunk_size, auth_size,
                                      erase_unit_info.cmac, cmac_calc_start);
             if (ret) {
+                perf_exit(PERF_ENC);
                 return ret;
             }
         }
@@ -397,11 +403,13 @@ int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr, bd_size_t size)
         auth_addr += auth_chunk_size;
     }
 
+    perf_exit(PERF_ENC);
     return BD_ERROR_OK;
 }
 
 int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr, bd_size_t size)
 {
+    perf_enter(PERF_ENC);
     MBED_ASSERT(is_valid_program(addr, size));
     MBED_ASSERT(_init_done);
 
@@ -430,6 +438,7 @@ int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr, bd_size_t 
                 erase_unit_info.num_erases =  0;
             }
             if (result != SOTP_SUCCESS) {
+                perf_exit(PERF_ENC);
                 return BD_ERROR_ENC_BD_SOTP_ERROR;
             }
 
@@ -445,6 +454,7 @@ int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr, bd_size_t 
         encrypt_chunk(src_buf, prog_buf, addr, chunk_size, erase_unit_info.num_erases);
         int ret = _bd->program(prog_buf, addr, chunk_size);
         if (ret) {
+            perf_exit(PERF_ENC);
             return ret;
         }
         src_buf += chunk_size;
@@ -455,16 +465,19 @@ int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr, bd_size_t 
         if (!size || !(addr % _erase_size)) {
             ret = sign_erase_unit(erase_unit_num, erase_unit_info.num_erases);
             if (ret) {
+                perf_exit(PERF_ENC);
                 return ret;
             }
         }
     }
 
+    perf_exit(PERF_ENC);
     return BD_ERROR_OK;
 }
 
 int EncryptedBlockDevice::erase(bd_addr_t addr, bd_size_t size)
 {
+    perf_enter(PERF_ENC);
     MBED_ASSERT(is_valid_erase(addr, size));
     MBED_ASSERT(_init_done);
 
@@ -485,6 +498,7 @@ int EncryptedBlockDevice::erase(bd_addr_t addr, bd_size_t size)
             erase_unit_info.num_erases = 0;
         }
         else if (result != SOTP_SUCCESS) {
+            perf_exit(PERF_ENC);
             return BD_ERROR_ENC_BD_SOTP_ERROR;
         }
         else {
@@ -493,18 +507,21 @@ int EncryptedBlockDevice::erase(bd_addr_t addr, bd_size_t size)
 
         ret = sign_erase_unit(erase_unit_num, erase_unit_info.num_erases);
         if (ret) {
+            perf_exit(PERF_ENC);
             return ret;
         }
 
         bd_size_t chunk_size = MIN(_erase_size, size);
         ret = _bd->erase(addr, chunk_size);
         if (ret) {
+            perf_exit(PERF_ENC);
             return ret;
         }
         addr += chunk_size;
         size -= chunk_size;
     }
 
+    perf_exit(PERF_ENC);
     return BD_ERROR_OK;
 }
 

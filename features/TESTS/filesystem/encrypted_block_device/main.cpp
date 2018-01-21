@@ -29,6 +29,8 @@
 #include "Timer.h"
 #include "sotp.h"
 
+#include "perf.h"
+
 using namespace utest::v1;
 
 void rw_test_fill(EncryptedBlockDevice &enc_bd, int seed, uint8_t *buf, int erase,
@@ -174,6 +176,8 @@ void test_fs_read_write(BlockDevice *bd)
         printf ("\nIteration %d\n", i);
         timer.reset();
 
+        perf_reset();
+        perf_enter(PERF_FS);
         File file;
         err = file.open(&fs, "file1.dat", O_WRONLY | O_CREAT);
         TEST_ASSERT_EQUAL(0, err);
@@ -181,27 +185,33 @@ void test_fs_read_write(BlockDevice *bd)
         TEST_ASSERT_EQUAL(file_size, size);
         err = file.close();
         TEST_ASSERT_EQUAL(0, err);
+        perf_exit(PERF_FS);
+        perf_print();
 
         elapsed = timer.read_ms();
         printf("Elapsed time for file write (%d bytes) is %d millseconds\n", file_size, elapsed);
-        printf("#reads %lld, #writes %lld, #erases %lld\n", enc_bd->get_num_reads(),
-                enc_bd->get_num_writes(), enc_bd->get_num_erases());
-        printf("Number of SOTP writes: %lld, AVG write time %lld usec.\n",
-                sotp.get_num_writes(), sotp.get_avg_write_time_us());
+        //printf("#reads %lld, #writes %lld, #erases %lld\n", enc_bd->get_num_reads(),
+        //        enc_bd->get_num_writes(), enc_bd->get_num_erases());
+        //printf("Number of SOTP writes: %lld, AVG write time %lld usec.\n",
+        //        sotp.get_num_writes(), sotp.get_avg_write_time_us());
 
         timer.reset();
 
+        perf_reset();
+        perf_enter(PERF_FS);
         err = file.open(&fs, "file1.dat", O_RDONLY);
         TEST_ASSERT_EQUAL(0, err);
         size = file.read(buf, file_size);
         TEST_ASSERT_EQUAL(file_size, size);
         err = file.close();
         TEST_ASSERT_EQUAL(0, err);
+        perf_exit(PERF_FS);
+        perf_print();
 
         elapsed = timer.read_ms();
         printf("Elapsed time for file read (%d bytes) is %d millseconds\n", file_size, elapsed);
-        printf("#reads %lld, #writes %lld, #erases %lld\n", enc_bd->get_num_reads(),
-                enc_bd->get_num_writes(), enc_bd->get_num_erases());
+        //printf("#reads %lld, #writes %lld, #erases %lld\n", enc_bd->get_num_reads(),
+        //        enc_bd->get_num_writes(), enc_bd->get_num_erases());
 
         srand(1);
         for (bd_size_t j = 0; j < file_size; j++) {
@@ -230,6 +240,16 @@ void test_fs_read_write_fat()
     //test_fs_read_write <FATFileSystem> (&bd);
 }
 
+void test_fs_read_write_littlefs_noenc()
+{
+    SPIFBlockDevice bd(PTE2, PTE4, PTE1, PTE5);
+    SlicingBlockDevice slice(&bd, 0*4096, 128*4096);
+    printf("\nStarting LittleFS over non encrypted BD test\n");
+    test_fs_read_write <LittleFileSystem> (&slice);
+    //printf("\nStarting LittleFS over non-encrypted BD test\n");
+    //test_fs_read_write <LittleFileSystem> (&slice);
+}
+
 void test_fs_read_write_littlefs()
 {
     SPIFBlockDevice bd(PTE2, PTE4, PTE1, PTE5);
@@ -243,13 +263,14 @@ void test_fs_read_write_littlefs()
 
 // Test setup
 utest::v1::status_t test_setup(const size_t number_of_cases) {
-    GREENTEA_SETUP(30, "default_auto");
+    //GREENTEA_SETUP(30, "default_auto");
     return verbose_test_setup_handler(number_of_cases);
 }
 
 Case cases[] = {
-        Case("Testing read/write directly over encrypted BD", test_direct_read_write),
-        Case("Testing read/write over FAT on top of encrypted BD", test_fs_read_write_fat),
+//        Case("Testing read/write directly over encrypted BD", test_direct_read_write),
+//        Case("Testing read/write over FAT on top of encrypted BD", test_fs_read_write_fat),
+        Case("Testing read/write over LittleFS on top of non-encrypted BD", test_fs_read_write_littlefs_noenc),
         Case("Testing read/write over LittleFS on top of encrypted BD", test_fs_read_write_littlefs)
 };
 
