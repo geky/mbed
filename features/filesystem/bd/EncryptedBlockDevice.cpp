@@ -183,8 +183,10 @@ int EncryptedBlockDevice::sign_erase_unit(uint16_t erase_unit_num, uint16_t num_
         return BD_ERROR_ENC_BD_CALC_CMAC_ERROR;
     }
     erase_unit_info.num_erases = num_erases;
+    perf_enter(PERF_SOTP_SET);
     ret = sotp.set(_sotp_start_type + erase_unit_num, sizeof(erase_unit_info),
                       (uint32_t *)&erase_unit_info);
+    perf_exit(PERF_SOTP_SET);
     if (ret != SOTP_SUCCESS) {
         return BD_ERROR_ENC_BD_SOTP_ERROR;
     }
@@ -298,7 +300,7 @@ int EncryptedBlockDevice::init()
     if (_init_done) {
         return BD_ERROR_OK;
     }
-    _erase_size = 512; //_bd->get_erase_size();
+    _erase_size = PERF_BLOCK_SIZE; //4096; //_bd->get_erase_size();
 
     SOTP &sotp = SOTP::get_instance();
 
@@ -359,8 +361,10 @@ int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr_, bd_size_t size_)
             uint16_t ret_len;
             sotp_result_e result;
 
+            perf_enter(PERF_SOTP_GET);
             result = sotp.get(_sotp_start_type + erase_unit_num, sizeof(erase_unit_info_t),
                               (uint32_t *)&erase_unit_info, &ret_len);
+            perf_exit(PERF_SOTP_GET);
             // In case we have an SOTP not found error, it means we are reading from an unwritten erase
             // unit (which is legal). Code below knows not to authenticate this data or decrypt it.
             // However, we still need to deduct this part from from the total size.
@@ -448,8 +452,10 @@ int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr_, bd_size_t
             uint16_t ret_len;
             sotp_result_e result;
 
+            perf_enter(PERF_SOTP_GET);
             result = sotp.get(_sotp_start_type + erase_unit_num, sizeof(erase_unit_info),
                               (uint32_t *)&erase_unit_info, &ret_len);
+            perf_exit(PERF_SOTP_GET);
             if (result == SOTP_NOT_FOUND) {
                 erase_unit_info.num_erases =  0;
             }
@@ -520,8 +526,10 @@ int EncryptedBlockDevice::erase(bd_addr_t addr_, bd_size_t size_)
         sotp_result_e result;
         int ret;
 
+        perf_enter(PERF_SOTP_GET);
         result = sotp.get(_sotp_start_type + erase_unit_num, sizeof(erase_unit_info),
                           (uint32_t *)&erase_unit_info, &ret_len);
+        perf_exit(PERF_SOTP_GET);
         if (result == SOTP_NOT_FOUND) {
             erase_unit_info.num_erases = 0;
         }

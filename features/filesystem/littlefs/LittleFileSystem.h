@@ -19,6 +19,7 @@
 #include "FileSystem.h"
 #include "BlockDevice.h"
 #include "PlatformMutex.h"
+#include "perf.h"
 extern "C" {
 #include "lfs.h"
 }

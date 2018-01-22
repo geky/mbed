@@ -3,7 +3,10 @@
 
 const char *perf_names[PERF_COUNT] = {
     [PERF_FS]       = "fs",
+    [PERF_AUTH]     = "auth",
     [PERF_ENC]      = "enc",
+    [PERF_SOTP_GET] = "sotp-get",
+    [PERF_SOTP_SET] = "sotp-set",
     [PERF_BD_READ]  = "bd-read",
     [PERF_BD_PROG]  = "bd-prog",
     [PERF_BD_ERASE] = "bd-erase",
