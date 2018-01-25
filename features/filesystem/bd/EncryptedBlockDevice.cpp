@@ -332,7 +332,7 @@ int EncryptedBlockDevice::deinit()
 
 int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr_, bd_size_t size_)
 {
-    perf_enter(PERF_ENC);
+    perf_enter(PERF_AUTH);
 
     while (size_ > 0) {
         bd_addr_t addr = addr_;
@@ -379,7 +379,7 @@ int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr_, bd_size_t size_)
                 auth_size = _erase_size;
             }
             else {
-                perf_exit(PERF_ENC);
+                perf_exit(PERF_AUTH);
                 return BD_ERROR_ENC_BD_SOTP_ERROR;
             }
             auth_addr = align_down(addr, _erase_size);
@@ -390,7 +390,7 @@ int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr_, bd_size_t size_)
         bd_size_t auth_chunk_size = MIN(auth_size, ENC_BD_READ_BUF_SIZE);
         int ret = _bd->read(read_buf, auth_addr, align_up(auth_chunk_size, get_read_size()));
         if (ret) {
-            perf_exit(PERF_ENC);
+            perf_exit(PERF_AUTH);
             return ret;
         }
 
@@ -399,17 +399,19 @@ int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr_, bd_size_t size_)
             ret = authenticate_chunk(&auth_ctx, read_buf, auth_chunk_size, auth_size,
                                      erase_unit_info.cmac, cmac_calc_start);
             if (ret) {
-                perf_exit(PERF_ENC);
+                perf_exit(PERF_AUTH);
                 return ret;
             }
         }
 
         // Now decrypt the chunk
+        perf_enter(PERF_ENC);
         if ((addr >= auth_addr) && (addr < auth_addr + auth_chunk_size)) {
             // User address is within authenticated chunk - decrypt it
             decrypt_chunk(read_buf, buf, addr, auth_addr, auth_chunk_size, size, erase_unit_info.num_erases);
         }
         auth_addr += auth_chunk_size;
+        perf_exit(PERF_ENC);
     }
 
         addr_ += _erase_size;
@@ -417,13 +419,13 @@ int EncryptedBlockDevice::read(void *buffer, bd_addr_t addr_, bd_size_t size_)
         buffer = (uint8_t*)buffer + _erase_size;
     }
 
-    perf_exit(PERF_ENC);
+    perf_exit(PERF_AUTH);
     return BD_ERROR_OK;
 }
 
 int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr_, bd_size_t size_)
 {
-    perf_enter(PERF_ENC);
+    perf_enter(PERF_AUTH);
 
     while (size_ > 0) {
         bd_addr_t addr = addr_;
@@ -460,7 +462,7 @@ int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr_, bd_size_t
                 erase_unit_info.num_erases =  0;
             }
             if (result != SOTP_SUCCESS) {
-                perf_exit(PERF_ENC);
+                perf_exit(PERF_AUTH);
                 return BD_ERROR_ENC_BD_SOTP_ERROR;
             }
 
@@ -473,10 +475,12 @@ int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr_, bd_size_t
         chunk_size = MIN(chunk_size, size);
         // encrypt function will return the location in write buffer to this variable
         uint8_t *prog_buf = write_buf;
+        perf_enter(PERF_ENC);
         encrypt_chunk(src_buf, prog_buf, addr, chunk_size, erase_unit_info.num_erases);
+        perf_exit(PERF_ENC);
         int ret = _bd->program(prog_buf, addr, chunk_size);
         if (ret) {
-            perf_exit(PERF_ENC);
+            perf_exit(PERF_AUTH);
             return ret;
         }
         src_buf += chunk_size;
@@ -487,7 +491,7 @@ int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr_, bd_size_t
         if (!size || !(addr % _erase_size)) {
             ret = sign_erase_unit(erase_unit_num, erase_unit_info.num_erases);
             if (ret) {
-                perf_exit(PERF_ENC);
+                perf_exit(PERF_AUTH);
                 return ret;
             }
         }
@@ -498,16 +502,16 @@ int EncryptedBlockDevice::program(const void *buffer, bd_addr_t addr_, bd_size_t
         buffer = (uint8_t*)buffer + _erase_size;
     }
 
-    perf_exit(PERF_ENC);
+    perf_exit(PERF_AUTH);
     return BD_ERROR_OK;
 }
 
 int EncryptedBlockDevice::erase(bd_addr_t addr_, bd_size_t size_)
 {
-    perf_enter(PERF_ENC);
+    perf_enter(PERF_AUTH);
     int ret = _bd->erase(addr_, size_);
     if (ret) {
-        perf_exit(PERF_ENC);
+        perf_exit(PERF_AUTH);
         return ret;
     }
 
@@ -534,7 +538,7 @@ int EncryptedBlockDevice::erase(bd_addr_t addr_, bd_size_t size_)
             erase_unit_info.num_erases = 0;
         }
         else if (result != SOTP_SUCCESS) {
-            perf_exit(PERF_ENC);
+            perf_exit(PERF_AUTH);
             return BD_ERROR_ENC_BD_SOTP_ERROR;
         }
         else {
@@ -543,14 +547,14 @@ int EncryptedBlockDevice::erase(bd_addr_t addr_, bd_size_t size_)
 
         ret = sign_erase_unit(erase_unit_num, erase_unit_info.num_erases);
         if (ret) {
-            perf_exit(PERF_ENC);
+            perf_exit(PERF_AUTH);
             return ret;
         }
 
         bd_size_t chunk_size = MIN(_erase_size, size);
 //        ret = _bd->erase(addr, chunk_size);
 //        if (ret) {
-//            perf_exit(PERF_ENC);
+//            perf_exit(PERF_AUTH);
 //            return ret;
 //        }
         addr += chunk_size;
@@ -561,7 +565,7 @@ int EncryptedBlockDevice::erase(bd_addr_t addr_, bd_size_t size_)
         size_ -= _erase_size;
     }
 
-    perf_exit(PERF_ENC);
+    perf_exit(PERF_AUTH);
     return BD_ERROR_OK;
 }
 
