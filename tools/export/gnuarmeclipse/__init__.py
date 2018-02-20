@@ -92,7 +92,7 @@ class GNUARMEclipse(Exporter):
 
         config_header = self.toolchain.get_config_header()
         flags = {key + "_flags": copy.deepcopy(value) for key, value
-                 in self.toolchain.flags.iteritems()}
+                 in self.toolchain.flags.items()}
         if config_header:
             config_header = relpath(config_header,
                                     self.resources.file_basepath[config_header])
@@ -117,7 +117,7 @@ class GNUARMEclipse(Exporter):
         config_header = self.toolchain.get_config_header()
 
         flags = {key + "_flags": copy.deepcopy(value) for key, value
-                 in toolchain.flags.iteritems()}
+                 in toolchain.flags.items()}
         if config_header:
             config_header = relpath(config_header,
                                     self.resources.file_basepath[config_header])
@@ -210,6 +210,8 @@ class GNUARMEclipse(Exporter):
 
             # Hack to fill in build_dir
             toolchain.build_dir = self.toolchain.build_dir
+            toolchain.config = self.toolchain.config
+            toolchain.set_config_data(self.toolchain.config.get_config_data())
 
             flags = self.toolchain_flags(toolchain)
 
@@ -291,7 +293,8 @@ class GNUARMEclipse(Exporter):
                       '.cproject', trim_blocks=True, lstrip_blocks=True)
         self.gen_file('gnuarmeclipse/makefile.targets.tmpl', jinja_ctx,
                       'makefile.targets', trim_blocks=True, lstrip_blocks=True)
-        self.gen_file('gnuarmeclipse/mbedignore.tmpl', jinja_ctx, '.mbedignore')
+        self.gen_file_nonoverwrite('gnuarmeclipse/mbedignore.tmpl', jinja_ctx,
+                                   '.mbedignore')
 
         print
         print 'Done. Import the \'{0}\' project in Eclipse.'.format(self.project_name)
