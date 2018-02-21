@@ -38,7 +38,7 @@ MBED_WEAK void mbed_main(void)
 
 extern int __real_main(void);
 
-int __wrap_main(void) 
+MBED_WEAK int __wrap_main(void) 
 {
     osKernelInitialize();
     memset((void*)&singleton_mutex_attr, 0, sizeof(singleton_mutex_attr));

@@ -16,7 +16,9 @@
  */
 
 #include "mbed.h"
+#if MBED_CONF_RTOS_PRESENT
 #include "rtos.h"
+#endif
 #include "mbed_stats.h"
 #include "cmsis_os2.h"
 #include "greentea-client/test_env.h"

@@ -75,7 +75,7 @@ bool core_util_in_critical_section(void)
     return hal_in_critical_section();
 }
 
-void core_util_critical_section_enter(void)
+MBED_WEAK void core_util_critical_section_enter(void)
 {
 // FIXME
 #ifdef FEATURE_UVISOR
@@ -90,7 +90,7 @@ void core_util_critical_section_enter(void)
     ++critical_section_reentrancy_counter;
 }
 
-void core_util_critical_section_exit(void)
+MBED_WEAK void core_util_critical_section_exit(void)
 {
 // FIXME
 #ifdef FEATURE_UVISOR

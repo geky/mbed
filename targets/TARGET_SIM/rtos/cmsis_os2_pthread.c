@@ -23,6 +23,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <errno.h>
 
 typedef struct {
   const char *name;
@@ -658,9 +659,8 @@ osStatus_t osMutexDelete (osMutexId_t mutex_id)
 {
     _mutex_t *mutex = (_mutex_t*)mutex_id;
     pthread_mutex_destroy(&mutex->pt_mutex);
-    free(mutex->pt_mutex);
-    mutex->pt_mutex = NULL;
-    return osError;
+    free(mutex);
+    return osOK;
 }
  
  

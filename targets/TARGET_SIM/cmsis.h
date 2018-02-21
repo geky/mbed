@@ -17,6 +17,7 @@
 #define CMSIS_H
 
 #define __INLINE inline
+#define __EXCLUSIVE_ACCESS 0U
 
 //TODO - trap if any of these are used
 #define __get_PRIMASK() 0
