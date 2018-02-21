@@ -338,7 +338,7 @@ if __name__ == '__main__':
                 import traceback
                 traceback.print_exc(file=sys.stdout)
             else:
-                print("[ERROR] %s" % str(e))
+                print("[ERROR] %s" % unicode(e))
 
             sys.exit(1)
     if options.build_data:
