@@ -1,17 +1,16 @@
 /*
- * Copyright (c) 2015-2017 ARM Limited. All Rights Reserved.
- *
+ * Copyright (c) 2015-2017, Arm Limited and affiliates.
  * SPDX-License-Identifier: Apache-2.0
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
@@ -26,6 +25,10 @@
 #define TRANSACTION_LIFETIME 180
 /* Default value for CoAP duplicate message buffer (0 = disabled) */
 #define DUPLICATE_MESSAGE_BUFFER_SIZE 0
+
+/* Default values for CoAP resendings */
+#define COAP_RESENDING_COUNT 3
+#define COAP_RESENDING_INTERVAL 10
 
 /**
  * \brief Service message response receive callback.
@@ -51,17 +54,19 @@ typedef struct coap_msg_handler_s {
 typedef struct coap_transaction {
     uint8_t remote_address[16];
     uint8_t local_address[16];
-    uint8_t token[4];
-    uint32_t create_time;
+    uint8_t token[8];
+    uint32_t valid_until;
+    uint8_t *data_ptr;
+    coap_message_handler_response_recv *resp_cb;
     uint16_t remote_port;
     uint16_t msg_id;
     uint16_t data_len;
     int8_t service_id;
     uint8_t options;
-    uint8_t *data_ptr;
+    uint8_t token_len;
+    sn_coap_msg_type_e req_msg_type;
     bool client_request: 1;
 
-    coap_message_handler_response_recv *resp_cb;
     ns_list_link_t link;
 } coap_transaction_t;
 
@@ -75,8 +80,8 @@ extern coap_transaction_t *coap_message_handler_transaction_valid(coap_transacti
 
 extern coap_transaction_t *coap_message_handler_find_transaction(uint8_t *address_ptr, uint16_t port);
 
-extern int16_t coap_message_handler_coap_msg_process(coap_msg_handler_t *handle, int8_t socket_id, const uint8_t source_addr_ptr[static 16], uint16_t port, const uint8_t dst_addr_ptr[static 16],
-                                                         uint8_t *data_ptr, uint16_t data_len, int16_t (cb)(int8_t, sn_coap_hdr_s *, coap_transaction_t *));
+extern int16_t coap_message_handler_coap_msg_process(coap_msg_handler_t *handle, int8_t socket_id, int8_t interface_id, const uint8_t source_addr_ptr[static 16], uint16_t port, const uint8_t dst_addr_ptr[static 16],
+                                                         uint8_t *data_ptr, uint16_t data_len, int16_t (cb)(int8_t, int8_t, sn_coap_hdr_s *, coap_transaction_t *));
 
 extern uint16_t coap_message_handler_request_send(coap_msg_handler_t *handle, int8_t service_id, uint8_t options, const uint8_t destination_addr[static 16],
                                                       uint16_t destination_port, sn_coap_msg_type_e msg_type, sn_coap_msg_code_e msg_code, const char *uri, sn_coap_content_format_e cont_type,
@@ -92,5 +97,8 @@ extern int8_t coap_message_handler_exec(coap_msg_handler_t *handle, uint32_t cur
 extern void transaction_delete(coap_transaction_t *this);
 
 extern void transactions_delete_all(uint8_t *address_ptr, uint16_t port);
+
+extern int8_t coap_message_handler_response_send_by_msg_id(coap_msg_handler_t *handle, int8_t service_id, uint8_t options, uint16_t msg_id, sn_coap_msg_code_e message_code,
+        sn_coap_content_format_e content_type, const uint8_t *payload_ptr,uint16_t payload_len);
 
 #endif

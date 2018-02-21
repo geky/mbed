@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from __future__ import print_function
 
 import os
 import binascii
@@ -66,7 +67,7 @@ def cached(func):
     """
     def wrapper(*args, **kwargs):
         """The wrapped function itself"""
-        if not CACHES.has_key((func.__name__, args)):
+        if (func.__name__, args) not in CACHES:
             CACHES[(func.__name__, args)] = func(*args, **kwargs)
         return CACHES[(func.__name__, args)]
     return wrapper
@@ -142,9 +143,10 @@ class Target(namedtuple("Target", "name json_data resolution_order resolution_or
                                     Target.__targets_json_location_default)
 
         for extra_target in Target.__extra_target_json_files:
-            for k, v in json_file_to_dict(extra_target).iteritems():
+            for k, v in json_file_to_dict(extra_target).items():
                 if k in targets:
-                    print 'WARNING: Custom target "%s" cannot replace existing target.' % k
+                    print('WARNING: Custom target "%s" cannot replace existing '
+                          'target.' % k)
                 else:
                     targets[k] = v
 
@@ -213,16 +215,16 @@ class Target(namedtuple("Target", "name json_data resolution_order resolution_or
         # inheritance level, left to right order to figure out all the
         # other classes that change the definition by adding or removing
         # elements
-        for idx in xrange(self.resolution_order[def_idx][1] - 1, -1, -1):
+        for idx in range(self.resolution_order[def_idx][1] - 1, -1, -1):
             same_level_targets = [tar[0] for tar in self.resolution_order
                                   if tar[1] == idx]
             for tar in same_level_targets:
                 data = tdata[tar]
                 # Do we have anything to add ?
-                if data.has_key(attrname + "_add"):
+                if (attrname + "_add") in data:
                     starting_value.extend(data[attrname + "_add"])
                 # Do we have anything to remove ?
-                if data.has_key(attrname + "_remove"):
+                if (attrname + "_remove") in data:
                     # Macros can be defined either without a value (MACRO)
                     # or with a value (MACRO=10). When removing, we specify
                     # only the name of the macro, without the value. So we
@@ -259,19 +261,14 @@ class Target(namedtuple("Target", "name json_data resolution_order resolution_or
             starting_value = None
             for tgt in self.resolution_order:
                 data = tdata[tgt[0]]
-                if data.has_key(attrname):
-                    starting_value = data[attrname]
-                    break
+                try:
+                    return data[attrname]
+                except KeyError:
+                    pass
             else: # Attribute not found
                 raise AttributeError(
                     "Attribute '%s' not found in target '%s'"
                     % (attrname, self.name))
-            # 'progen' needs the full path to the template (the path in JSON is
-            # relative to tools/export)
-            if attrname == "progen":
-                return self.__add_paths_to_progen(starting_value)
-            else:
-                return starting_value
 
     def __getattr__(self, attrname):
         """ Return the value of an attribute. This function only computes the
@@ -339,7 +336,7 @@ class Target(namedtuple("Target", "name json_data resolution_order resolution_or
         # "class_name" must refer to a class in this file, so check if the
         # class exists
         mdata = self.get_module_data()
-        if not mdata.has_key(class_name) or \
+        if class_name not in mdata or \
            not inspect.isclass(mdata[class_name]):
             raise HookError(
                 ("Class '%s' required by '%s' in target '%s'"
@@ -428,7 +425,7 @@ class MTSCode(object):
         loader = os.path.join(TOOLS_BOOTLOADERS, target_name, "bootloader.bin")
         target = binf + ".tmp"
         if not os.path.exists(loader):
-            print "Can't find bootloader binary: " + loader
+            print("Can't find bootloader binary: " + loader)
             return
         outbin = open(target, 'w+b')
         part = open(loader, 'rb')
@@ -458,6 +455,11 @@ class MTSCode(object):
     def combine_bins_mts_dragonfly(t_self, resources, elf, binf):
         """A hoof for the MTS Dragonfly"""
         MTSCode._combine_bins_helper("MTS_DRAGONFLY_F411RE", binf)
+
+    @staticmethod
+    def combine_bins_mtb_mts_dragonfly(t_self, resources, elf, binf):
+        """A hook for the MTB MTS Dragonfly"""
+        MTSCode._combine_bins_helper("MTB_MTS_DRAGONFLY", binf)
 
 class MCU_NRF51Code(object):
     """NRF51 Hooks"""

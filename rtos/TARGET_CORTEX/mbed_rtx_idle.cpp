@@ -24,7 +24,6 @@
 #include "platform/mbed_sleep.h"
 #include "TimerEvent.h"
 #include "lp_ticker_api.h"
-#include "rtx_core_cm.h"
 #include "mbed_critical.h"
 #include "mbed_assert.h"
 #include <new>
@@ -195,13 +194,10 @@ static void default_idle_hook(void)
 
     core_util_critical_section_enter();
     uint32_t ticks_to_sleep = svcRtxKernelSuspend();
-    MBED_ASSERT(os_timer->get_tick() == svcRtxKernelGetTickCount());
     if (ticks_to_sleep) {
         os_timer->schedule_tick(ticks_to_sleep);
 
-        sleep_manager_lock_deep_sleep();
         sleep();
-        sleep_manager_unlock_deep_sleep();
 
         os_timer->cancel_tick();
         // calculate how long we slept

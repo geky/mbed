@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 #include "rtos/ConditionVariable.h"
-#include "rtos/Semaphore.h"
+#include "rtos/Kernel.h"
 #include "rtos/Thread.h"
 
 #include "mbed_error.h"
@@ -28,17 +28,7 @@
 
 namespace rtos {
 
-#define RESUME_SIGNAL      (1 << 15)
-
-struct Waiter {
-    Waiter();
-    Semaphore sem;
-    Waiter *prev;
-    Waiter *next;
-    bool in_list;
-};
-
-Waiter::Waiter(): sem(0), prev(NULL), next(NULL), in_list(false)
+ConditionVariable::Waiter::Waiter(): sem(0), prev(NULL), next(NULL), in_list(false)
 {
     // No initialization to do
 }
@@ -58,7 +48,7 @@ bool ConditionVariable::wait_for(uint32_t millisec)
     Waiter current_thread;
     MBED_ASSERT(_mutex.get_owner() == Thread::gettid());
     MBED_ASSERT(_mutex._count == 1);
-    _add_wait_list(&current_thread);
+    _add_wait_list(&_wait_list, &current_thread);
 
     _mutex.unlock();
 
@@ -68,10 +58,28 @@ bool ConditionVariable::wait_for(uint32_t millisec)
     _mutex.lock();
 
     if (current_thread.in_list) {
-        _remove_wait_list(&current_thread);
+        _remove_wait_list(&_wait_list, &current_thread);
     }
 
     return timeout;
+}
+
+bool ConditionVariable::wait_until(uint64_t millisec)
+{
+    uint64_t now = Kernel::get_ms_count();
+
+    if (now >= millisec) {
+        // Time has already passed - standard behaviour is to
+        // treat as a "try".
+        return wait_for(0);
+    } else if (millisec - now >= osWaitForever) {
+        // Exceeds maximum delay of underlying wait_for -
+        // spuriously wake after 49 days, indicating no timeout.
+        wait_for(osWaitForever - 1);
+        return false;
+    } else {
+        return wait_for(millisec - now);
+    }
 }
 
 void ConditionVariable::notify_one()
@@ -79,7 +87,7 @@ void ConditionVariable::notify_one()
     MBED_ASSERT(_mutex.get_owner() == Thread::gettid());
     if (_wait_list != NULL) {
         _wait_list->sem.release();
-        _remove_wait_list(_wait_list);
+        _remove_wait_list(&_wait_list, _wait_list);
     }
 }
 
@@ -88,41 +96,50 @@ void ConditionVariable::notify_all()
     MBED_ASSERT(_mutex.get_owner() == Thread::gettid());
     while (_wait_list != NULL) {
         _wait_list->sem.release();
-        _remove_wait_list(_wait_list);
+        _remove_wait_list(&_wait_list, _wait_list);
     }
 }
 
-void ConditionVariable::_add_wait_list(Waiter * waiter)
+void ConditionVariable::_add_wait_list(Waiter **wait_list, Waiter *waiter)
 {
-    if (NULL == _wait_list) {
+    if (NULL == *wait_list) {
         // Nothing in the list so add it directly.
-        // Update prev pointer to reference self
-        _wait_list = waiter;
+        // Update prev and next pointer to reference self
+        *wait_list = waiter;
+        waiter->next = waiter;
         waiter->prev = waiter;
     } else {
         // Add after the last element
-        Waiter *last = _wait_list->prev;
-        last->next = waiter;
+        Waiter *first = *wait_list;
+        Waiter *last = (*wait_list)->prev;
+
+        // Update new entry
+        waiter->next = first;
         waiter->prev = last;
-        _wait_list->prev = waiter;
+
+        // Insert into the list
+        first->prev = waiter;
+        last->next = waiter;
     }
     waiter->in_list = true;
 }
 
-void ConditionVariable::_remove_wait_list(Waiter * waiter)
+void ConditionVariable::_remove_wait_list(Waiter **wait_list, Waiter *waiter)
 {
-    // Remove this element from the start of the list
-    Waiter * next = waiter->next;
-    if (waiter == _wait_list) {
-        _wait_list = next;
+    Waiter *prev = waiter->prev;
+    Waiter *next = waiter->next;
+
+    // Remove from list
+    prev->next = waiter->next;
+    next->prev = waiter->prev;
+    *wait_list = waiter->next;
+
+    if (*wait_list == waiter) {
+        // This was the last element in the list
+        *wait_list = NULL;
     }
-    if (next != NULL) {
-        next = waiter->prev;
-    }
-    Waiter * prev = waiter->prev;
-    if (prev != NULL) {
-        prev = waiter->next;
-    }
+
+    // Invalidate pointers
     waiter->next = NULL;
     waiter->prev = NULL;
     waiter->in_list = false;

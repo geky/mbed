@@ -53,7 +53,35 @@ enum nsapi_error {
     NSAPI_ERROR_IS_CONNECTED        = -3015,     /*!< socket is already connected */
     NSAPI_ERROR_CONNECTION_LOST     = -3016,     /*!< connection lost */
     NSAPI_ERROR_CONNECTION_TIMEOUT  = -3017,     /*!< connection timed out */
+    NSAPI_ERROR_ADDRESS_IN_USE      = -3018,     /*!< Address already in use */
 };
+
+
+/** Enum of connection status types
+ *
+ *  Valid error codes have negative values.
+ *
+ *  @enum nsapi_connection_status
+ */
+ typedef enum nsapi_connection_status {
+    NSAPI_STATUS_LOCAL_UP           = 0,        /*!< local IP address set */
+    NSAPI_STATUS_GLOBAL_UP          = 1,        /*!< global IP address set */
+    NSAPI_STATUS_DISCONNECTED       = 2,        /*!< no connection to network */
+    NSAPI_STATUS_CONNECTING         = 3,        /*!< connecting to network */
+    NSAPI_STATUS_ERROR_UNSUPPORTED  = NSAPI_ERROR_UNSUPPORTED
+} nsapi_connection_status_t;
+
+
+/** Enum of event types
+ * 
+ *  Event callbacks are accompanied with an event-dependent parameter passed as an intptr_t.
+ *
+ *  @enum nsapi_event
+ */
+ typedef enum nsapi_event {
+    NSAPI_EVENT_CONNECTION_STATUS_CHANGE = 0 /*!< network connection status has changed, the parameter = new status (nsapi_connection_status_t) */
+} nsapi_event_t;
+
 
 /** Type used to represent error codes
  *
@@ -158,7 +186,7 @@ typedef void *nsapi_socket_t;
 /** Enum of socket protocols
  *
  *  The socket protocol specifies a particular protocol to
- *  be used with a newly created socket. 
+ *  be used with a newly created socket.
  *
  *  @enum nsapi_protocol
  */
@@ -207,13 +235,15 @@ typedef enum nsapi_socket_level {
  *  @enum nsapi_socket_option
  */
 typedef enum nsapi_socket_option {
-    NSAPI_REUSEADDR, /*!< Allow bind to reuse local addresses */
-    NSAPI_KEEPALIVE, /*!< Enables sending of keepalive messages */
-    NSAPI_KEEPIDLE,  /*!< Sets timeout value to initiate keepalive */
-    NSAPI_KEEPINTVL, /*!< Sets timeout value for keepalive */
-    NSAPI_LINGER,    /*!< Keeps close from returning until queues empty */
-    NSAPI_SNDBUF,    /*!< Sets send buffer size */
-    NSAPI_RCVBUF,    /*!< Sets recv buffer size */
+    NSAPI_REUSEADDR,         /*!< Allow bind to reuse local addresses */
+    NSAPI_KEEPALIVE,         /*!< Enables sending of keepalive messages */
+    NSAPI_KEEPIDLE,          /*!< Sets timeout value to initiate keepalive */
+    NSAPI_KEEPINTVL,         /*!< Sets timeout value for keepalive */
+    NSAPI_LINGER,            /*!< Keeps close from returning until queues empty */
+    NSAPI_SNDBUF,            /*!< Sets send buffer size */
+    NSAPI_RCVBUF,            /*!< Sets recv buffer size */
+    NSAPI_ADD_MEMBERSHIP,    /*!< Add membership to multicast address */
+    NSAPI_DROP_MEMBERSHIP,   /*!< Drop membership to multicast address */
 } nsapi_socket_option_t;
 
 /** Supported IP protocol versions of IP stack
@@ -265,6 +295,13 @@ typedef struct nsapi_stack {
     unsigned _stack_buffer[16];
 } nsapi_stack_t;
 
+/** nsapi_ip_mreq structure
+ */
+typedef struct nsapi_ip_mreq {
+    nsapi_addr_t imr_multiaddr; /* IP multicast address of group */
+    nsapi_addr_t imr_interface; /* local IP address of interface */
+} nsapi_ip_mreq_t;
+
 /** nsapi_stack_api structure
  *
  *  Common api structure for network stack operations. A network stack
@@ -286,9 +323,9 @@ typedef struct nsapi_stack_api
      *
      *  The hostname may be either a domain name or an IP address. If the
      *  hostname is an IP address, no network transactions will be performed.
-     *  
+     *
      *  If no stack-specific DNS resolution is provided, the hostname
-     *  will be resolve using a UDP socket on the stack. 
+     *  will be resolve using a UDP socket on the stack.
      *
      *  @param stack    Stack handle
      *  @param addr     Destination for the host IP address
@@ -333,7 +370,7 @@ typedef struct nsapi_stack_api
      *  @param optval   Destination for option value
      *  @param optlen   Length of the option value
      *  @return         0 on success, negative error code on failure
-     */    
+     */
     nsapi_error_t (*getstackopt)(nsapi_stack_t *stack, int level,
             int optname, void *optval, unsigned *optlen);
 
@@ -534,7 +571,7 @@ typedef struct nsapi_stack_api
      *  @param optval   Option value
      *  @param optlen   Length of the option value
      *  @return         0 on success, negative error code on failure
-     */    
+     */
     nsapi_error_t (*setsockopt)(nsapi_stack_t *stack, nsapi_socket_t socket, int level,
             int optname, const void *optval, unsigned optlen);
 
@@ -551,7 +588,7 @@ typedef struct nsapi_stack_api
      *  @param optval   Destination for option value
      *  @param optlen   Length of the option value
      *  @return         0 on success, negative error code on failure
-     */    
+     */
     nsapi_error_t (*getsockopt)(nsapi_stack_t *stack, nsapi_socket_t socket, int level,
             int optname, void *optval, unsigned *optlen);
 } nsapi_stack_api_t;
