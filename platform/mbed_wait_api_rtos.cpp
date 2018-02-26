@@ -24,14 +24,6 @@
 #include "platform/mbed_critical.h"
 #include "platform/mbed_sleep.h"
 
-void wait(float s) {
-    wait_us(s * 1000000.0f);
-}
-
-void wait_ms(int ms) {
-    wait_us(ms * 1000);
-}
-
 void wait_us(int us) {
     const ticker_data_t *const ticker = get_us_ticker_data();
 
