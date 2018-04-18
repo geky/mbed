@@ -117,10 +117,7 @@ public:
      */
      virtual int statvfs(const char *path, struct statvfs *buf);
 
-protected:
-    friend class File;
-    friend class Dir;
-
+public:
     /** Open a file on the filesystem
      *
      *  @param file     Destination for the handle to a newly created file
