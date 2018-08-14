@@ -30,11 +30,9 @@
 #error flashiap-block-device.size not set
 #endif
 
-/** BlockDevice using the FlashIAP API
+/** FlashIAPBlockDevice class
  *
- *  @code
- *  #include "mbed.h"
- *  #include "FlashIAPBlockDevice.h"
+ *  BlockDevice using the FlashIAP API
  *
  */
 class FlashIAPBlockDevice : public BlockDevice {
