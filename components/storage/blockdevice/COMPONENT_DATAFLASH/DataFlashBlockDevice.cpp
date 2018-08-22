@@ -166,10 +166,6 @@ int DataFlashBlockDevice::init()
 {
     DEBUG_PRINTF("init\r\n");
 
-    if (!_is_initialized) {
-        _init_ref_count = 0;
-    }
-
     uint32_t val = core_util_atomic_incr_u32(&_init_ref_count, 1);
 
     if (val != 1) {
@@ -279,6 +275,9 @@ int DataFlashBlockDevice::init()
 
     if (result == BD_ERROR_OK) {
         _is_initialized = true;
+    } else {
+        _is_initialized = false;
+        _init_ref_count = 0;
     }
 
     return result;

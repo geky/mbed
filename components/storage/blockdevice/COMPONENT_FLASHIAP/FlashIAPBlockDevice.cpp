@@ -57,10 +57,6 @@ int FlashIAPBlockDevice::init()
 {
     DEBUG_PRINTF("init\r\n");
 
-    if (!_is_initialized) {
-        _init_ref_count = 0;
-    }
-
     uint32_t val = core_util_atomic_incr_u32(&_init_ref_count, 1);
 
     if (val != 1) {
@@ -70,13 +66,20 @@ int FlashIAPBlockDevice::init()
     int ret = _flash.init();
 
     if (ret) {
-        return ret;
+        goto end;
     }
 
     _base = _flash.get_flash_start();
     _size = _flash.get_flash_size();
 
-    _is_initialized = true;
+end:
+    if (ret == BD_ERROR_OK) {
+        _is_initialized = true;
+    } else {
+        _is_initialized = false;
+        _init_ref_count = 0;
+    }
+
     return ret;
 }
 

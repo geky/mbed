@@ -363,13 +363,9 @@ int SDBlockDevice::_initialise_card()
 
 int SDBlockDevice::init()
 {
-    int err;
+    int err = BD_ERROR_OK;
 
     lock();
-
-    if (!_is_initialized) {
-        _init_ref_count = 0;
-    }
 
     _init_ref_count++;
 
@@ -378,37 +374,41 @@ int SDBlockDevice::init()
     }
 
     err = _initialise_card();
-    _is_initialized = (err == BD_ERROR_OK);
-    if (!_is_initialized) {
+    if (err != BD_ERROR_OK) {
         debug_if(SD_DBG, "Fail to initialize card\n");
-        unlock();
-        return err;
+        goto end;
     }
     debug_if(SD_DBG, "init card = %d\n", _is_initialized);
     _sectors = _sd_sectors();
     // CMD9 failed
     if (0 == _sectors) {
-        unlock();
-        return BD_ERROR_DEVICE_ERROR;
+        err = BD_ERROR_DEVICE_ERROR;
+        goto end;
     }
 
     // Set block length to 512 (CMD16)
     if (_cmd(CMD16_SET_BLOCKLEN, _block_size) != 0) {
         debug_if(SD_DBG, "Set %d-byte block timed out\n", _block_size);
-        unlock();
-        return BD_ERROR_DEVICE_ERROR;
+        err = BD_ERROR_DEVICE_ERROR;
+        goto end;
     }
 
     // Set SCK for data transfer
     err = _freq();
     if (err) {
-        unlock();
-        return err;
+        err = BD_ERROR_DEVICE_ERROR;
+        goto end;
     }
 
 end:
+    if (err == BD_ERROR_OK) {
+        _is_initialized = true;
+    } else {
+        _is_initialized = false;
+        _init_ref_count = 0;
+    }
     unlock();
-    return BD_ERROR_OK;
+    return err;
 }
 
 int SDBlockDevice::deinit()
