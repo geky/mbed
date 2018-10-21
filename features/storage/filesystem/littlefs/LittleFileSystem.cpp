@@ -322,7 +322,7 @@ int LittleFileSystem::mount(BlockDevice *bd)
 
 int LittleFileSystem::unmount()
 {
-    LFS_INFO("unmount(%p)", bd);
+    LFS_INFO("unmount()", "");
     int err = deinit();
     LFS_INFO("unmount -> %d", err);
     return err;

@@ -18,6 +18,7 @@
 #include "filesystem/File.h"
 #include "filesystem/FileSystem.h"
 #include <errno.h>
+#include <algorithm>
 
 namespace mbed {
 
@@ -194,6 +195,166 @@ int FileSystem::open(DirHandle **dir, const char *path) {
 
     *dir = d;
     return 0;
+}
+
+// Implementation of KVStore functions
+int FileSystem::set(const char *key, const void *buffer, size_t size, uint32_t create_flags)
+{
+    fs_file_t file;
+    int err = file_open(&file, key, create_flags | O_CREAT | O_TRUNC | O_WRONLY);
+    if (err) {
+        return err;
+    }
+
+    ssize_t res = file_write(file, buffer, size);
+    if (res < 0) {
+        return res;
+    }
+
+    err = file_close(file);
+    if (err) {
+        return err;
+    }
+
+    return 0;
+}
+
+int FileSystem::get(const char *key, void *buffer, size_t buffer_size, size_t *actual_size, size_t offset)
+{
+    fs_file_t file;
+    int err = file_open(&file, key, O_RDONLY);
+    if (err) {
+        return err;
+    }
+
+    ssize_t res = file_seek(file, offset, SEEK_SET);
+    if (res < 0) {
+        return res;
+    }
+
+    res = file_read(file, buffer, buffer_size);
+    if (res < 0) {
+        return res;
+    }
+
+    if (actual_size) {
+        *actual_size = res;
+    }
+
+    err = file_close(file);
+    if (err) {
+        return err;
+    }
+
+    return 0;
+}
+
+int FileSystem::get_info(const char *key, info_t *info)
+{
+    struct stat st;
+    int err = stat(key, &st);
+    if (err) {
+        return err;
+    }
+
+    info->flags = (st.st_mode | S_IWOTH) ? WRITE_ONCE_FLAG : 0;
+    info->size = st.st_size;
+    return 0;
+}
+
+int FileSystem::set_start(set_handle_t *handle, const char *key, size_t final_data_size, uint32_t create_flags)
+{
+    fs_file_t file;
+    int err = file_open(&file, key, create_flags | O_CREAT | O_TRUNC | O_WRONLY);
+    if (err) {
+        return err;
+    }
+
+    *handle = (set_handle_t)file;
+    return 0;
+}
+
+int FileSystem::set_add_data(set_handle_t handle, const void *value_data, size_t data_size)
+{
+    fs_file_t file = (fs_file_t)handle;
+
+    ssize_t res = file_write(file, value_data, data_size);
+    if (res < 0) {
+        return res;
+    }
+
+    return 0;
+}
+
+int FileSystem::set_finalize(set_handle_t handle)
+{
+    fs_file_t file = (fs_file_t)handle;
+
+    int err = file_close(file);
+    if (err) {
+        return err;
+    }
+
+    return 0;
+}
+
+struct fs_iterator {
+    const char *prefix;
+    size_t prefix_len;
+    fs_dir_t dir;
+};
+
+int FileSystem::iterator_open(iterator_t *it, const char *prefix)
+{
+    fs_iterator *fit = new fs_iterator;
+    int err = dir_open(&fit->dir, "/");
+    if (err) {
+        return err;
+    }
+
+    fit->prefix = prefix;
+    fit->prefix_len = strlen(prefix);
+
+    *it = (iterator_t)fit;
+    return 0;
+}
+
+int FileSystem::iterator_next(iterator_t it, char *key, size_t key_size)
+{
+    fs_iterator *fit = (fs_iterator*)it;
+
+    while (true) {
+        struct dirent ent;
+        int err = dir_read(fit->dir, &ent);
+        if (err) {
+            return err;
+        }
+
+        if (ent.d_type != DT_REG) {
+            continue;
+        }
+
+        if (strlen(ent.d_name) < key_size+1 || strlen(ent.d_name) < fit->prefix_len) {
+            continue;
+        }
+
+        if (memcmp(fit->prefix, ent.d_name, fit->prefix_len) != 0) {
+            continue;
+        }
+
+        strcpy(key, ent.d_name);
+        return 0;
+    }
+}
+
+int FileSystem::iterator_close(iterator_t it)
+{
+    fs_iterator *fit = (fs_iterator*)it;
+
+    int err = dir_close(fit->dir);
+    delete fit;
+
+    return err;
 }
 
 } // namespace mbed
