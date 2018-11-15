@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "mbed_error.h"
 
 namespace mbed {
 
@@ -178,6 +179,34 @@ public:
      * @returns 0 on success or a negative error code on failure
      */
     virtual int iterator_close(iterator_t it) = 0;
+
+    /**
+     * @brief Set data in reserved area.
+     *
+     * @param[in]  reserved_data        Reserved data buffer.
+     * @param[in]  reserved_data_buf_size
+     *                                  Reserved data buffer size.
+     *
+     * @returns 0 on success or a negative error code on failure
+     */
+    virtual int reserved_data_set(const void *reserved_data, size_t reserved_data_buf_size)
+    {
+        return MBED_ERROR_UNSUPPORTED;
+    }
+
+    /**
+     * @brief Get data from reserved area.
+     *
+     * @param[in]  reserved_data        Reserved data buffer.
+     * @param[in]  reserved_data_buf_size
+     *                                  Reserved data buffer size.
+     *
+     * @returns 0 on success or a negative error code on failure
+     */
+    virtual int reserved_data_get(void *reserved_data, size_t reserved_data_buf_size)
+    {
+        return MBED_ERROR_UNSUPPORTED;
+    }
 
     /** Convenience function for checking key validity
      *

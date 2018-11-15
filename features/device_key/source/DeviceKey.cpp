@@ -18,7 +18,6 @@
 #include "mbedtls/config.h"
 #include "mbedtls/cmac.h"
 #include "KVStore.h"
-#include "TDBStore.h"
 #include "KVMap.h"
 #include "kv_config.h"
 #include "trng_api.h"
@@ -132,7 +131,7 @@ int DeviceKey::write_key_to_kvstore(uint32_t *input, size_t isize)
         return DEVICEKEY_SAVE_FAILED;
     }
 
-    ret = ((TDBStore*)inner_store)->reserved_data_set(input, isize);
+    ret = inner_store->reserved_data_set(input, isize);
     if (MBED_ERROR_WRITE_FAILED == ret) {
         return DEVICEKEY_SAVE_FAILED;
     }
@@ -156,7 +155,7 @@ int DeviceKey::read_key_from_kvstore(uint32_t *output, size_t& size)
         return DEVICEKEY_NOT_FOUND;
     }
 
-    int kvStatus = ((TDBStore*)inner_store)->reserved_data_get(output, size);
+    int kvStatus = inner_store->reserved_data_get(output, size);
     if (MBED_ERROR_ITEM_NOT_FOUND == kvStatus) {
         return DEVICEKEY_NOT_FOUND;
     }
