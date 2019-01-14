@@ -62,7 +62,7 @@ typedef uint32_t lfs_block_t;
 
 // Maximum inline file size in bytes, may be redefined to limit RAM usage,
 // but littlefs will automatically limit the LFS_INLINE_MAX to the
-// configured cache_size. Limited to <= 1022.
+// configured cache_size or block_size/4. Limited to <= 1022.
 #ifndef LFS_INLINE_MAX
 #define LFS_INLINE_MAX 1022
 #endif
@@ -246,7 +246,7 @@ struct lfs_config {
     // backed by RAM, but if a file fits in RAM it can be inlined into its
     // directory block without needing its own data block. Must be <=
     // cache_size and LFS_INLINE_MAX. Defaults to min(LFS_INLINE_MAX,
-    // cache_size) when zero.
+    // cache_size, block_size/8) when zero.
     lfs_size_t inline_max;
 };
 

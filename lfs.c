@@ -2711,7 +2711,8 @@ lfs_ssize_t lfs_file_write(lfs_t *lfs, lfs_file_t *file,
     if ((file->flags & LFS_F_INLINE) &&
             lfs_max(file->pos+nsize, file->ctz.size) >
             lfs_min(lfs->cfg->cache_size, lfs->cfg->inline_max
-                ? lfs->cfg->inline_max : LFS_INLINE_MAX)) {
+                ? lfs->cfg->inline_max
+                : lfs_min(lfs->cfg->block_size/8, LFS_INLINE_MAX))) {
         // inline file doesn't fit anymore
         file->off = file->pos;
         int err = lfs_file_relocate(lfs, file);
