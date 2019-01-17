@@ -318,40 +318,40 @@ typedef struct lfs_mdir {
     uint32_t etag;
     uint16_t count;
     bool erased;
-    bool split;
-    lfs_block_t tail[2];
+//    bool split;
+//    lfs_block_t tail[2];
 } lfs_mdir_t;
 
-// littlefs directory type
+//// littlefs directory type
 typedef struct lfs_dir {
-    struct lfs_dir *next;
-    uint16_t id;
-    uint8_t type;
-    lfs_mdir_t m;
-
-    lfs_off_t pos;
-    lfs_block_t head[2];
+//    struct lfs_dir *next;
+//    uint16_t id;
+//    uint8_t type;
+//    lfs_mdir_t m;
+//
+//    lfs_off_t pos;
+//    lfs_block_t head[2];
 } lfs_dir_t;
 
 // littlefs file type
 typedef struct lfs_file {
-    struct lfs_file *next;
-    uint16_t id;
-    uint8_t type;
-    lfs_mdir_t m;
-
-    struct lfs_ctz {
-        lfs_block_t head;
-        lfs_size_t size;
-    } ctz;
-
-    uint32_t flags;
-    lfs_off_t pos;
-    lfs_block_t block;
-    lfs_off_t off;
-    lfs_cache_t cache;
-
-    const struct lfs_file_config *cfg;
+//    struct lfs_file *next;
+//    uint16_t id;
+//    uint8_t type;
+//    lfs_mdir_t m;
+//
+//    struct lfs_ctz {
+//        lfs_block_t head;
+//        lfs_size_t size;
+//    } ctz;
+//
+//    uint32_t flags;
+//    lfs_off_t pos;
+//    lfs_block_t block;
+//    lfs_off_t off;
+//    lfs_cache_t cache;
+//
+//    const struct lfs_file_config *cfg;
 } lfs_file_t;
 
 typedef struct lfs_superblock {
@@ -368,7 +368,7 @@ typedef struct lfs {
     lfs_cache_t rcache;
     lfs_cache_t pcache;
 
-    lfs_block_t root[2];
+//    lfs_block_t root[2];
 //    struct lfs_mlist {
 //        struct lfs_mlist *next;
 //        uint16_t id;
