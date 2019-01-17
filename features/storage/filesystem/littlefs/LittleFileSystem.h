@@ -55,12 +55,15 @@ public:
      *      lookahead reduces the number of passes required to allocate a block.
      *      The lookahead buffer requires only 1 bit per block so it can be quite
      *      large with little ram impact. Should be a multiple of 32.
+     *  TODO doc
      */
     LittleFileSystem(const char *name = NULL, mbed::BlockDevice *bd = NULL,
                      lfs_size_t read_size = MBED_LFS_READ_SIZE,
                      lfs_size_t prog_size = MBED_LFS_PROG_SIZE,
                      lfs_size_t block_size = MBED_LFS_BLOCK_SIZE,
-                     lfs_size_t lookahead = MBED_LFS_LOOKAHEAD);
+                     lfs_size_t lookahead = MBED_LFS_LOOKAHEAD,
+                     lfs_size_t cache_size = MBED_LFS_CACHE_SIZE,
+                     uint32_t   block_cycles = MBED_LFS_BLOCK_CYCLES);
 
     virtual ~LittleFileSystem();
 
@@ -91,7 +94,9 @@ public:
                       lfs_size_t read_size = MBED_LFS_READ_SIZE,
                       lfs_size_t prog_size = MBED_LFS_PROG_SIZE,
                       lfs_size_t block_size = MBED_LFS_BLOCK_SIZE,
-                      lfs_size_t lookahead = MBED_LFS_LOOKAHEAD);
+                      lfs_size_t lookahead = MBED_LFS_LOOKAHEAD,
+                      lfs_size_t cache_size = MBED_LFS_CACHE_SIZE,
+                      uint32_t   block_cycles = MBED_LFS_BLOCK_CYCLES);
 
     /** Mount a file system to a block device.
      *
@@ -294,7 +299,9 @@ private:
     const lfs_size_t _read_size;
     const lfs_size_t _prog_size;
     const lfs_size_t _block_size;
-    const lfs_size_t _lookahead;
+    const lfs_size_t _lookahead_size;
+    const lfs_size_t _cache_size;
+    const lfs_size_t _block_cycles;
 
     // thread-safe locking
     PlatformMutex _mutex;

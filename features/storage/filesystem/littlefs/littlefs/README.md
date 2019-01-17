@@ -12,16 +12,16 @@ A little fail-safe filesystem designed for embedded systems.
 ```
 
 **Bounded RAM/ROM** - The littlefs is designed to work with a limited amount
-of memory. Recursion is avoided, and dynamic memory is limited to configurable
+of memory. Recursion is avoided and dynamic memory is limited to configurable
 buffers that can be provided statically.
 
 **Power-loss resilient** - The littlefs is designed for systems that may have
-random power failures. The littlefs has strong copy-on-write guarantees, and
+random power failures. The littlefs has strong copy-on-write guarantees and
 storage on disk is always kept in a valid state.
 
-**Wear leveling** - Because the most common form of embedded storage is erodible
+**Wear leveling** - Since the most common form of embedded storage is erodible
 flash memories, littlefs provides a form of dynamic wear leveling for systems
-that cannot fit a full flash translation layer.
+that can not fit a full flash translation layer.
 
 ## Example
 
@@ -49,7 +49,8 @@ const struct lfs_config cfg = {
     .prog_size = 16,
     .block_size = 4096,
     .block_count = 128,
-    .lookahead = 128,
+    .cache_size = 16,
+    .lookahead_size = 16,
 };
 
 // entry point
@@ -93,10 +94,10 @@ can be found in the comments in [lfs.h](lfs.h).
 As you may have noticed, littlefs takes in a configuration structure that
 defines how the filesystem operates. The configuration struct provides the
 filesystem with the block device operations and dimensions, tweakable
-parameters that trade memory usage for performance and optional
+parameters that tradeoff memory usage for performance, and optional
 static buffers if the user wants to avoid dynamic memory.
 
-The state of the littlefs is stored in the `lfs_t` type, which is left up
+The state of the littlefs is stored in the `lfs_t` type which is left up
 to the user to allocate, allowing multiple filesystems to be in use
 simultaneously. With the `lfs_t` and configuration struct, a user can
 format a block device or mount the filesystem.
@@ -106,7 +107,7 @@ directory functions, with the deviation that the allocation of filesystem
 structures must be provided by the user.
 
 All POSIX operations, such as remove and rename, are atomic, even in event
-of power loss. Additionally, no file updates are actually committed to the
+of power-loss. Additionally, no file updates are actually committed to the
 filesystem until sync or close is called on the file.
 
 ## Other notes
@@ -130,11 +131,11 @@ hits the memory, the `sync` function can simply return 0.
 ## Reference material
 
 [DESIGN.md](DESIGN.md) - DESIGN.md contains a fully detailed dive into how
-littlefs actually works. We would encourage you to read it because the
+littlefs actually works. I would encourage you to read it since the
 solutions and tradeoffs at work here are quite interesting.
 
 [SPEC.md](SPEC.md) - SPEC.md contains the on-disk specification of littlefs
-with all the nitty-gritty details. This can be useful for developing tooling.
+with all the nitty-gritty details. Can be useful for developing tooling.
 
 ## Testing
 
@@ -172,6 +173,21 @@ wrapper for littlefs. The project allows you to mount littlefs directly on a
 Linux machine. Can be useful for debugging littlefs if you have an SD card
 handy.
 
-[littlefs-js](https://github.com/geky/littlefs-js) - A JavaScript wrapper for
+[littlefs-js](https://github.com/geky/littlefs-js) - A javascript wrapper for
 littlefs. I'm not sure why you would want this, but it is handy for demos.
 You can see it in action [here](http://littlefs.geky.net/demo.html).
+
+[mklfs](https://github.com/whitecatboard/Lua-RTOS-ESP32/tree/master/components/mklfs/src) -
+A command line tool built by the [Lua RTOS](https://github.com/whitecatboard/Lua-RTOS-ESP32)
+guys for making littlefs images from a host PC. Supports Windows, Mac OS,
+and Linux.
+
+[SPIFFS](https://github.com/pellepl/spiffs) - Another excellent embedded
+filesystem for NOR flash. As a more traditional logging filesystem with full
+static wear-leveling, SPIFFS will likely outperform littlefs on small
+memories such as the internal flash on microcontrollers.
+
+[Dhara](https://github.com/dlbeer/dhara) - An interesting NAND flash
+translation layer designed for small MCUs. It offers static wear-leveling and
+power-resilience with only a fixed O(|address|) pointer structure stored on
+each block and in RAM.

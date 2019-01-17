@@ -21,6 +21,16 @@
         "value": 512,
         "help": "Number of blocks to lookahead during block allocation. A larger lookahead reduces the number of passes required to allocate a block. The lookahead buffer requires only 1 bit per block so it can be quite large with little ram impact. Should be a multiple of 32."
     },
+    "cache_size": {
+        "macro_name": "MBED_LFS_CACHE_SIZE",
+        "value": "64",
+        "help": "TODO doc"
+    },
+    "block_cycles": {
+        "macro_name": "MBED_LFS_BLOCK_CYCLES",
+        "value": "0",
+        "help": "TODO doc, TODO change"
+    },
     "intrinsics": {
         "macro_name": "MBED_LFS_INTRINSICS",
         "value": true,
@@ -50,6 +60,11 @@
         "macro_name": "MBED_LFS_ENABLE_ASSERT",
         "value": null,
         "help": "Enables asserts, true = enabled, false = disabled, null = disabled only in release builds"
+    },
+    "config_header": {
+        "macro_name": "LFS_CONFIG",
+        "value": "features/storage/filesystem/littlefs/lfs_config.h",
+        "help": "Internal path to littlefs config header file"
     }
   }
 }
