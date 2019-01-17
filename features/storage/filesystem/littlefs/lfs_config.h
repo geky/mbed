@@ -4,8 +4,8 @@
  * Copyright (c) 2017, Arm Limited. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause
  */
-#ifndef LFS_UTIL_H
-#define LFS_UTIL_H
+#ifndef LFS_CONFIG_H
+#define LFS_CONFIG_H
 
 // Users can override lfs_util.h with their own configuration by defining
 // LFS_CONFIG as a header file to include (-DLFS_CONFIG=lfs_config.h).
@@ -13,11 +13,11 @@
 // If LFS_CONFIG is used, none of the default utils will be emitted and must be
 // provided by the config file. To start, I would suggest copying lfs_util.h
 // and modifying as needed.
-#ifdef LFS_CONFIG
-#define LFS_STRINGIZE(x) LFS_STRINGIZE2(x)
-#define LFS_STRINGIZE2(x) #x
-#include LFS_STRINGIZE(LFS_CONFIG)
-#else
+//#ifdef LFS_CONFIG
+//#define LFS_STRINGIZE(x) LFS_STRINGIZE2(x)
+//#define LFS_STRINGIZE2(x) #x
+//#include LFS_STRINGIZE(LFS_CONFIG)
+//#else
 
 // System includes
 #include <stdint.h>
@@ -31,7 +31,8 @@
 #ifndef LFS_NO_ASSERT
 #include <assert.h>
 #endif
-#if !defined(LFS_NO_DEBUG) || !defined(LFS_NO_WARN) || !defined(LFS_NO_ERROR)
+#if !defined(LFS_NO_INFO) || !defined(LFS_NO_DEBUG) || \
+        !defined(LFS_NO_WARN) || !defined(LFS_NO_ERROR)
 #include <stdio.h>
 #endif
 
@@ -45,31 +46,56 @@ extern "C"
 // macros must not have side-effects as the macros can be removed for a smaller
 // code footprint
 
+#ifdef __MBED__
+#include "mbed_debug.h"
+#include "mbed_assert.h"
+#else
+#define MBED_LFS_ENABLE_INFO    false
+#define MBED_LFS_ENABLE_DEBUG   true
+#define MBED_LFS_ENABLE_WARN    true
+#define MBED_LFS_ENABLE_ERROR   true
+#define MBED_LFS_ENABLE_ASSERT  true
+#define MBED_LFS_INTRINSICS     true
+#endif
+
 // Logging functions
-#ifndef LFS_NO_DEBUG
-#define LFS_DEBUG(fmt, ...) \
-    printf("lfs debug:%d: " fmt "\n", __LINE__, __VA_ARGS__)
+#if !defined(LFS_NO_INFO) && MBED_LFS_ENABLE_INFO
+#define LFS_INFO(fmt, ...)  printf("lfs info:%d: " fmt "\n", __LINE__, __VA_ARGS__)
+#elif !defined(LFS_NO_INFO) && !defined(MBED_LFS_ENABLE_INFO)
+#define LFS_INFO(fmt, ...)  debug("lfs info:%d: " fmt "\n", __LINE__, __VA_ARGS__)
+#else
+#define LFS_INFO(fmt, ...)
+#endif
+
+#if !defined(LFS_NO_DEBUG) && MBED_LFS_ENABLE_DEBUG
+#define LFS_DEBUG(fmt, ...) printf("lfs debug:%d: " fmt "\n", __LINE__, __VA_ARGS__)
+#elif !defined(LFS_NO_DEBUG) && !defined(MBED_LFS_ENABLE_DEBUG)
+#define LFS_DEBUG(fmt, ...) debug("lfs debug:%d: " fmt "\n", __LINE__, __VA_ARGS__)
 #else
 #define LFS_DEBUG(fmt, ...)
 #endif
 
-#ifndef LFS_NO_WARN
-#define LFS_WARN(fmt, ...) \
-    printf("lfs warn:%d: " fmt "\n", __LINE__, __VA_ARGS__)
+#if !defined(LFS_NO_WARN) && MBED_LFS_ENABLE_WARN
+#define LFS_WARN(fmt, ...)  printf("lfs warn:%d: " fmt "\n", __LINE__, __VA_ARGS__)
+#elif !defined(LFS_NO_WARN) && !defined(MBED_LFS_ENABLE_WARN)
+#define LFS_WARN(fmt, ...)  debug("lfs warn:%d: " fmt "\n", __LINE__, __VA_ARGS__)
 #else
 #define LFS_WARN(fmt, ...)
 #endif
 
-#ifndef LFS_NO_ERROR
-#define LFS_ERROR(fmt, ...) \
-    printf("lfs error:%d: " fmt "\n", __LINE__, __VA_ARGS__)
+#if !defined(LFS_NO_ERROR) && MBED_LFS_ENABLE_ERROR
+#define LFS_ERROR(fmt, ...) printf("lfs error:%d: " fmt "\n", __LINE__, __VA_ARGS__)
+#elif !defined(LFS_NO_ERROR) && !defined(MBED_LFS_ENABLE_ERROR)
+#define LFS_ERROR(fmt, ...) debug("lfs error:%d: " fmt "\n", __LINE__, __VA_ARGS__)
 #else
 #define LFS_ERROR(fmt, ...)
 #endif
 
 // Runtime assertions
-#ifndef LFS_NO_ASSERT
+#if !defined(LFS_NO_ASSERT) && MBED_LFS_ENABLE_ASSERT
 #define LFS_ASSERT(test) assert(test)
+#elif !defined(LFS_NO_ASSERT) && !defined(MBED_LFS_ENABLE_ASSERT)
+#define LFS_ASSERT(test) MBED_ASSERT(test)
 #else
 #define LFS_ASSERT(test)
 #endif
@@ -99,7 +125,8 @@ static inline uint32_t lfs_alignup(uint32_t a, uint32_t alignment) {
 
 // Find the next smallest power of 2 less than or equal to a
 static inline uint32_t lfs_npw2(uint32_t a) {
-#if !defined(LFS_NO_INTRINSICS) && (defined(__GNUC__) || defined(__CC_ARM))
+#if !defined(LFS_NO_INTRINSICS) && MBED_LFS_INTRINSICS && \
+        (defined(__GNUC__) || defined(__CC_ARM))
     return 32 - __builtin_clz(a-1);
 #else
     uint32_t r = 0;
@@ -116,7 +143,8 @@ static inline uint32_t lfs_npw2(uint32_t a) {
 // Count the number of trailing binary zeros in a
 // lfs_ctz(0) may be undefined
 static inline uint32_t lfs_ctz(uint32_t a) {
-#if !defined(LFS_NO_INTRINSICS) && defined(__GNUC__)
+#if !defined(LFS_NO_INTRINSICS) && MBED_LFS_INTRINSICS && \
+        defined(__GNUC__)
     return __builtin_ctz(a);
 #else
     return lfs_npw2((a & -a) + 1) - 1;
@@ -125,7 +153,8 @@ static inline uint32_t lfs_ctz(uint32_t a) {
 
 // Count the number of binary ones in a
 static inline uint32_t lfs_popc(uint32_t a) {
-#if !defined(LFS_NO_INTRINSICS) && (defined(__GNUC__) || defined(__CC_ARM))
+#if !defined(LFS_NO_INTRINSICS) && MBED_LFS_INTRINSICS && \
+        (defined(__GNUC__) || defined(__CC_ARM))
     return __builtin_popcount(a);
 #else
     a = a - ((a >> 1) & 0x55555555);
@@ -142,12 +171,12 @@ static inline int lfs_scmp(uint32_t a, uint32_t b) {
 
 // Convert between 32-bit little-endian and native order
 static inline uint32_t lfs_fromle32(uint32_t a) {
-#if !defined(LFS_NO_INTRINSICS) && ( \
+#if !defined(LFS_NO_INTRINSICS) && MBED_LFS_INTRINSICS && ( \
     (defined(  BYTE_ORDER  ) &&   BYTE_ORDER   ==   ORDER_LITTLE_ENDIAN  ) || \
     (defined(__BYTE_ORDER  ) && __BYTE_ORDER   == __ORDER_LITTLE_ENDIAN  ) || \
     (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__))
     return a;
-#elif !defined(LFS_NO_INTRINSICS) && ( \
+#elif !defined(LFS_NO_INTRINSICS) && MBED_LFS_INTRINSICS && ( \
     (defined(  BYTE_ORDER  ) &&   BYTE_ORDER   ==   ORDER_BIG_ENDIAN  ) || \
     (defined(__BYTE_ORDER  ) && __BYTE_ORDER   == __ORDER_BIG_ENDIAN  ) || \
     (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__))
@@ -166,12 +195,12 @@ static inline uint32_t lfs_tole32(uint32_t a) {
 
 // Convert between 32-bit big-endian and native order
 static inline uint32_t lfs_frombe32(uint32_t a) {
-#if !defined(LFS_NO_INTRINSICS) && ( \
+#if !defined(LFS_NO_INTRINSICS) && MBED_LFS_INTRINSICS && ( \
     (defined(  BYTE_ORDER  ) &&   BYTE_ORDER   ==   ORDER_LITTLE_ENDIAN  ) || \
     (defined(__BYTE_ORDER  ) && __BYTE_ORDER   == __ORDER_LITTLE_ENDIAN  ) || \
     (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__))
     return __builtin_bswap32(a);
-#elif !defined(LFS_NO_INTRINSICS) && ( \
+#elif !defined(LFS_NO_INTRINSICS) && MBED_LFS_INTRINSICS && ( \
     (defined(  BYTE_ORDER  ) &&   BYTE_ORDER   ==   ORDER_BIG_ENDIAN  ) || \
     (defined(__BYTE_ORDER  ) && __BYTE_ORDER   == __ORDER_BIG_ENDIAN  ) || \
     (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__))
@@ -215,5 +244,5 @@ static inline void lfs_free(void *p) {
 } /* extern "C" */
 #endif
 
-#endif
+//#endif
 #endif
