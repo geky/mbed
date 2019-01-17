@@ -369,26 +369,26 @@ typedef struct lfs {
     lfs_cache_t pcache;
 
     lfs_block_t root[2];
-    struct lfs_mlist {
-        struct lfs_mlist *next;
-        uint16_t id;
-        uint8_t type;
-        lfs_mdir_t m;
-    } *mlist;
+//    struct lfs_mlist {
+//        struct lfs_mlist *next;
+//        uint16_t id;
+//        uint8_t type;
+//        lfs_mdir_t m;
+//    } *mlist;
     uint32_t seed;
 
-    struct lfs_gstate {
-        uint32_t tag;
-        lfs_block_t pair[2];
-    } gstate, gpending, gdelta;
-
-    struct lfs_free {
-        lfs_block_t off;
-        lfs_block_t size;
-        lfs_block_t i;
-        lfs_block_t ack;
-        uint32_t *buffer;
-    } free;
+//    struct lfs_gstate {
+//        uint32_t tag;
+//        lfs_block_t pair[2];
+//    } gstate, gpending, gdelta;
+//
+//    struct lfs_free {
+//        lfs_block_t off;
+//        lfs_block_t size;
+//        lfs_block_t i;
+//        lfs_block_t ack;
+//        uint32_t *buffer;
+//    } free;
 
     const struct lfs_config *cfg;
     lfs_size_t name_max;
@@ -480,6 +480,9 @@ int lfs_removeattr(lfs_t *lfs, const char *path, uint8_t type);
 
 
 /// File operations ///
+
+int lfs_get(lfs_t *lfs, const char *key, void *buffer, lfs_size_t size);
+int lfs_set(lfs_t *lfs, const char *key, const void *buffer, lfs_size_t size);
 
 // Open a file
 //
