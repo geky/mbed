@@ -11,7 +11,7 @@
 * Unless required by applicable law or agreed to in writing, software
 * distributed under the License is distributed on an "AS IS" BASIS,
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
+* See the License for the specific language governing permissions an
 * limitations under the License.
 */
 
@@ -23,6 +23,7 @@
 #include "BlockDevice.h"
 #include "SPIFReducedBlockDevice.h"
 #include "TDBStore.h"
+#include "LittleStore.h"
 #include "lfs.h"
 #include "lfs_util.h"
 
@@ -37,6 +38,10 @@ BlockDevice *bd = &rspif;
 //BlockDevice *bd = BlockDevice::get_default_instance();
 #ifdef USETDB
 TDBStore store(bd);
+char buffer[64];
+int err;
+#elif defined(USELS)
+LittleStore store(bd);
 char buffer[64];
 int err;
 #else
@@ -66,7 +71,7 @@ extern "C" int bdsync(const struct lfs_config *c) {
 
 InterruptIn irq(BUTTON1);
 void reset() {
-#ifdef USETDB
+#if defined(USETDB) || defined(USELS)
     err = store.init();
     printf("init() -> %d\n", err);
     err = store.reset();
@@ -84,7 +89,7 @@ int main()
     printf("-- KVStore hack --\n");
     irq.fall(mbed_event_queue()->event(reset));
 
-#ifdef USETDB
+#if defined(USETDB) || defined(USELS)
     err = store.init();
     printf("init() -> %d\n", err);
 
